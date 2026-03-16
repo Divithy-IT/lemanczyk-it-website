@@ -4,9 +4,9 @@
   "version": "0.0.1",
   "type": "module",
   "scripts": {
-    "build": "vite build",
-    "dev": "vite",
-    "prod": "vite build"
+    "build": "cp index.source.html index.html && vite build",
+    "dev": "cp index.source.html index.html && vite",
+    "prod": "cp index.source.html index.html && vite build"
   },
   "dependencies": {
     "@emotion/react": "11.14.0",

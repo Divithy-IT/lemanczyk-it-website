@@ -1,10 +1,10 @@
-import { Phone } from "lucide-react";
+import { handleScrollToTop, handleSectionLinkClick } from "../utils/scrollToSection";
 
 export function Header() {
   return (
     <header className="sticky top-0 z-40 w-full bg-white border-b border-gray-200 transition-all py-4 shadow-sm">
       <div className="max-w-[1440px] mx-auto px-6 lg:px-12 flex items-center justify-between">
-        <a href="#" className="flex items-center hover:opacity-70 transition-opacity">
+        <a href="#" onClick={handleScrollToTop} className="flex items-center hover:opacity-70 transition-opacity">
           <svg width="120" height="40" viewBox="0 0 120 40" fill="none" xmlns="http://www.w3.org/2000/svg" className="h-8 lg:h-10 w-auto">
             {/* Background geometric shape */}
             <rect x="2" y="8" width="24" height="24" rx="6" fill="#2563EB" fillOpacity="0.1"/>
@@ -39,19 +39,19 @@ export function Header() {
         </a>
 
         <div className="flex items-center gap-4">
-          <a href="#" className="hidden md:inline-flex px-5 py-2.5 rounded-full text-sm font-semibold border border-gray-300 bg-white hover:bg-gray-50 text-gray-900 transition-all">
+          <a href="#" onClick={handleScrollToTop} className="hidden md:inline-flex px-5 py-2.5 rounded-full text-sm font-semibold border border-gray-300 bg-white hover:bg-gray-50 text-gray-900 transition-all">
             Strona główna
           </a>
-          <a href="#uslugi" className="hidden sm:inline-flex px-5 py-2.5 rounded-full text-sm font-semibold border border-gray-300 bg-white hover:bg-gray-50 text-gray-900 transition-all">
+          <a href="#uslugi" onClick={(event) => handleSectionLinkClick(event, "uslugi")} className="hidden sm:inline-flex px-5 py-2.5 rounded-full text-sm font-semibold border border-gray-300 bg-white hover:bg-gray-50 text-gray-900 transition-all">
             Usługi
           </a>
-          <a href="#o-mnie" className="hidden sm:inline-flex px-5 py-2.5 rounded-full text-sm font-semibold border border-gray-300 bg-white hover:bg-gray-50 text-gray-900 transition-all">
+          <a href="#o-mnie" onClick={(event) => handleSectionLinkClick(event, "o-mnie")} className="hidden sm:inline-flex px-5 py-2.5 rounded-full text-sm font-semibold border border-gray-300 bg-white hover:bg-gray-50 text-gray-900 transition-all">
             O mnie
           </a>
-          <a href="#opinie" className="hidden sm:inline-flex px-5 py-2.5 rounded-full text-sm font-semibold border border-gray-300 bg-white hover:bg-gray-50 text-gray-900 transition-all">
+          <a href="#opinie" onClick={(event) => handleSectionLinkClick(event, "opinie")} className="hidden sm:inline-flex px-5 py-2.5 rounded-full text-sm font-semibold border border-gray-300 bg-white hover:bg-gray-50 text-gray-900 transition-all">
             Opinie
           </a>
-          <a href="#kontakt" className="inline-flex px-5 py-2.5 rounded-full text-sm font-semibold border border-blue-600 bg-blue-600 hover:bg-blue-700 hover:border-blue-700 text-white transition-all shadow-sm hover:shadow-md">
+          <a href="#kontakt" onClick={(event) => handleSectionLinkClick(event, "kontakt")} className="inline-flex px-5 py-2.5 rounded-full text-sm font-semibold border border-blue-600 bg-blue-600 hover:bg-blue-700 hover:border-blue-700 text-white transition-all shadow-sm hover:shadow-md">
             Kontakt
           </a>
         </div>

@@ -21,10 +21,10 @@ export function Testimonial() {
   ];
 
   return (
-    <section id="opinie" className="py-16 lg:py-20 relative z-10 bg-white">
-      <div className="max-w-[1440px] mx-auto px-6 lg:px-12">
+    <section id="opinie" className="py-10 sm:py-14 lg:py-20 relative z-10 bg-white">
+      <div className="max-w-[1440px] mx-auto px-5 sm:px-6 lg:px-12">
         
-        <h2 className="font-['Sora'] text-4xl lg:text-5xl font-bold text-gray-900 text-center mb-16">
+        <h2 className="font-['Sora'] text-3xl sm:text-4xl lg:text-5xl font-bold text-gray-900 text-center mb-8 sm:mb-12 lg:mb-16">
           Zadowoleni klienci
         </h2>
 

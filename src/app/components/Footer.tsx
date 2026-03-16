@@ -1,4 +1,5 @@
 import { Github, Linkedin, Twitter } from "lucide-react";
+import { handleScrollToTop, handleSectionLinkClick } from "../utils/scrollToSection";
 
 export function Footer() {
   return (
@@ -16,7 +17,7 @@ export function Footer() {
           
           <div className="flex flex-col items-center lg:items-start gap-4">
             <div className="flex items-center gap-3">
-              <a href="#" className="flex items-center hover:opacity-70 transition-opacity">
+              <a href="#" onClick={handleScrollToTop} className="flex items-center hover:opacity-70 transition-opacity">
                 <svg width="120" height="40" viewBox="0 0 120 40" fill="none" xmlns="http://www.w3.org/2000/svg" className="h-8 lg:h-10 w-auto">
                   {/* Background geometric shape */}
                   <rect x="2" y="8" width="24" height="24" rx="6" fill="#2563EB" fillOpacity="0.1"/>
@@ -59,19 +60,19 @@ export function Footer() {
           </div>
 
           <div className="flex flex-wrap items-center justify-center gap-6">
-            <a href="#" className="text-sm font-medium text-gray-600 hover:text-blue-600 transition-colors">
+            <a href="#" onClick={handleScrollToTop} className="text-sm font-medium text-gray-600 hover:text-blue-600 transition-colors">
               Strona główna
             </a>
-            <a href="#uslugi" className="text-sm font-medium text-gray-600 hover:text-blue-600 transition-colors">
+            <a href="#uslugi" onClick={(event) => handleSectionLinkClick(event, "uslugi")} className="text-sm font-medium text-gray-600 hover:text-blue-600 transition-colors">
               Usługi
             </a>
-            <a href="#o-mnie" className="text-sm font-medium text-gray-600 hover:text-blue-600 transition-colors">
+            <a href="#o-mnie" onClick={(event) => handleSectionLinkClick(event, "o-mnie")} className="text-sm font-medium text-gray-600 hover:text-blue-600 transition-colors">
               O mnie
             </a>
-            <a href="#opinie" className="text-sm font-medium text-gray-600 hover:text-blue-600 transition-colors">
+            <a href="#opinie" onClick={(event) => handleSectionLinkClick(event, "opinie")} className="text-sm font-medium text-gray-600 hover:text-blue-600 transition-colors">
               Opinie
             </a>
-            <a href="#kontakt" className="text-sm font-medium text-gray-600 hover:text-blue-600 transition-colors">
+            <a href="#kontakt" onClick={(event) => handleSectionLinkClick(event, "kontakt")} className="text-sm font-medium text-gray-600 hover:text-blue-600 transition-colors">
               Kontakt
             </a>
           </div>
