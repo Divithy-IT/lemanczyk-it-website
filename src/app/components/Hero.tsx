@@ -1,6 +1,6 @@
 import { motion } from "motion/react";
 import { ArrowRight, Phone, CheckCircle2, Bot, Shield, BarChart2 } from "lucide-react";
-import heroImage from "figma:asset/7937cb277bd729564e71f0583ecc959a9f46009c.png";
+import heroImage from "../../assets/7937cb277bd729564e71f0583ecc959a9f46009c.png";
 
 export function Hero() {
   return (

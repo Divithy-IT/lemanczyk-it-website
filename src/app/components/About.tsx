@@ -1,6 +1,6 @@
 import { CheckCircle } from "lucide-react";
 import { ImageWithFallback } from "./figma/ImageWithFallback";
-import profileImage from "figma:asset/4ab1bd688239c90fb4310c68b8ca79e25559cb2f.png";
+import profileImage from "../../assets/4ab1bd688239c90fb4310c68b8ca79e25559cb2f.png";
 
 const attributes = [
   "Komunikacja", 
