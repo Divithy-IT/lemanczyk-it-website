@@ -4,9 +4,10 @@
   "version": "0.0.1",
   "type": "module",
   "scripts": {
-    "build": "cp index.source.html index.html && vite build",
+    "build": "cp index.source.html index.html && vite build && node scripts/generate-static-pages.mjs",
     "dev": "cp index.source.html index.html && vite",
-    "prod": "cp index.source.html index.html && vite build"
+    "prod": "npm run build",
+    "test": "npm run build && node scripts/check-site.mjs && php -l api/contact.php"
   },
   "dependencies": {
     "@emotion/react": "11.14.0",

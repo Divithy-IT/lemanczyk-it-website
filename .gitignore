@@ -1,3 +1,13 @@
 node_modules/
 dist/
 .idea/
+*.backup-*
+*.localbusiness-backup-*
+*.seo-fallback-backup-*
+*.seo-meta-backup-*
+index.nginx-debian.html
+/assets/favicon-*
+/assets/hero-*
+/assets/profile-*
+/assets/index-*
+/dane-firmy/
