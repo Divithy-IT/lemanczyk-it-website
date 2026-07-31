@@ -23,6 +23,7 @@ for (const viewport of [{ width: 375, height: 812 }, { width: 1366, height: 800 
 test("/o-mnie zawiera portret połączony z głównym opisem w górnej części", async ({ page }) => {
   await page.setViewportSize({ width: 1366, height: 900 }); await page.goto("/o-mnie"); const intro = page.getByTestId("about-intro"); const image = intro.locator(".about-portrait img"); await expect(image).toBeVisible();
   await expect(image).toHaveAttribute("alt", "Michał Lemanczyk — programista Full Stack i właściciel Lemanczyk-IT"); await expect(image).toHaveAttribute("width", "516"); await expect(image).toHaveAttribute("height", "688");
+  await expect(intro.locator("figcaption strong")).toHaveText("Michał Lemanczyk"); await expect(intro.getByText("Nazywam się Michał Lemanczyk.", { exact: false })).toBeVisible();
   await expect(page.locator(".about-portrait source")).toHaveAttribute("srcset", /michal-lemanczyk-689\.webp/);
   const imageBox = await image.boundingBox(); const introBox = await intro.boundingBox(); const experienceBox = await page.getByTestId("about-experience").boundingBox();
   expect(imageBox).not.toBeNull(); expect(introBox).not.toBeNull(); expect(experienceBox).not.toBeNull();
