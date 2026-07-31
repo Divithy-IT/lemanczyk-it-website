@@ -29,8 +29,8 @@ for (const [route, [title, description, heading]] of Object.entries(pages)) {
   await writeFile(output, html);
 }
 
-for (const file of ["robots.txt", "sitemap.xml", "og-image.svg", "site.webmanifest", "favicon.ico", "favicon.svg"]) {
+for (const file of ["robots.txt", "sitemap.xml", "og-image.svg", "site.webmanifest", "favicon.ico", "favicon.svg", "hero-system-desktop.svg", "hero-system-mobile.svg"]) {
   await copyFile(file, path.join("dist", file));
 }
 await mkdir("dist/api", { recursive: true });
-await copyFile("api/contact.php", "dist/api/contact.php");
+for (const file of ["contact.php", "contact_lib.php", "SmtpMailer.php"]) await copyFile(`api/${file}`, `dist/api/${file}`);

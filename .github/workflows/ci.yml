@@ -21,6 +21,10 @@ jobs:
         run: npm ci
       - name: Build and validate website
         run: npm test
+      - name: Install browser for responsive tests
+        run: npx playwright install --with-deps chromium
+      - name: Run responsive browser tests
+        run: npm run test:ui
       - name: Check for common secret patterns
         run: |
           if git grep -nEI '(ghp_|github_pat_|AKIA[0-9A-Z]{16}|-----BEGIN (RSA |EC |OPENSSH )?PRIVATE KEY-----)' -- ':!package-lock.json' ':!.github/workflows/ci.yml'; then

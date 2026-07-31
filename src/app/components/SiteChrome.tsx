@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Github, Mail, Menu, Phone, X } from "lucide-react";
 import { NavLink, Outlet, useLocation } from "react-router";
 import { company, navigation } from "../siteData";
@@ -6,10 +6,26 @@ import { company, navigation } from "../siteData";
 export function Header() {
   const [open, setOpen] = useState(false);
   const location = useLocation();
+  const headerRef = useRef<HTMLElement>(null);
   useEffect(() => setOpen(false), [location.pathname]);
+  useEffect(() => {
+    if (!open) return;
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setOpen(false);
+    };
+    const closeOutside = (event: PointerEvent) => {
+      if (!headerRef.current?.contains(event.target as Node)) setOpen(false);
+    };
+    window.addEventListener("keydown", closeOnEscape);
+    window.addEventListener("pointerdown", closeOutside);
+    return () => {
+      window.removeEventListener("keydown", closeOnEscape);
+      window.removeEventListener("pointerdown", closeOutside);
+    };
+  }, [open]);
 
   return (
-    <header className="sticky top-0 z-40 border-b border-slate-200/80 bg-white/95 backdrop-blur">
+    <header ref={headerRef} className="site-header sticky top-0 z-40 border-b border-slate-200/80 bg-white/95 backdrop-blur">
       <a className="skip-link" href="#main-content">Przejdź do treści</a>
       <div className="site-container flex h-20 items-center justify-between gap-4">
         <NavLink to="/" className="flex items-center gap-3 font-['Sora'] text-xl font-bold" aria-label="Lemanczyk-IT — strona główna">
@@ -21,16 +37,14 @@ export function Header() {
             <NavLink key={to} to={to} className={({ isActive }) => `nav-link ${isActive ? "nav-link-active" : ""}`}>{label}</NavLink>
           ))}
         </nav>
-        <div className="flex items-center gap-2">
-          <NavLink to="/kontakt" className="btn-primary hidden sm:inline-flex">Bezpłatna wycena</NavLink>
-          <button className="icon-button lg:hidden" type="button" aria-label={open ? "Zamknij menu" : "Otwórz menu"} aria-expanded={open} aria-controls="mobile-menu" onClick={() => setOpen(!open)}>
+        <div className="mobile-menu-controls">
+          <button className="icon-button mobile-menu-button" type="button" aria-label={open ? "Zamknij menu" : "Otwórz menu"} aria-expanded={open} aria-controls="mobile-menu" onClick={() => setOpen(!open)}>
             {open ? <X /> : <Menu />}
           </button>
         </div>
       </div>
-      <nav id="mobile-menu" className={`${open ? "grid" : "hidden"} border-t border-slate-200 bg-white px-5 py-5 lg:hidden`} aria-label="Nawigacja mobilna">
+      <nav id="mobile-menu" className={`mobile-menu ${open ? "mobile-menu-open" : ""} border-t border-slate-200 bg-white px-5 py-5`} aria-label="Nawigacja mobilna" aria-hidden={!open}>
         {navigation.map(([to, label]) => <NavLink key={to} to={to} className="rounded-xl px-4 py-3 font-semibold hover:bg-blue-50">{label}</NavLink>)}
-        <NavLink to="/kontakt" className="btn-primary mt-3 justify-center">Bezpłatna wycena</NavLink>
       </nav>
     </header>
   );

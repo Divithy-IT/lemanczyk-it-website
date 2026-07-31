@@ -1,4 +1,4 @@
-import { ArrowRight, Check, ExternalLink, Github, Mail, Phone, Server, Workflow } from "lucide-react";
+import { ArrowRight, Check, ExternalLink, Github, Mail, Phone, Youtube } from "lucide-react";
 import { Link } from "react-router";
 import { company, projects, services } from "../siteData";
 import { ContactForm } from "./ContactForm";
@@ -36,13 +36,13 @@ export function HomePage() {
       <div className="site-container grid items-center gap-12 lg:grid-cols-[1.15fr_.85fr]">
         <div><Eyebrow>Programista Full Stack · B2B</Eyebrow><h1>Dedykowane aplikacje webowe, automatyzacje i rozwiązania serwerowe</h1>
           <p className="lead">Jestem programistą Full Stack z doświadczeniem rozwijanym od 2019 roku. Tworzę strony internetowe, aplikacje webowe, panele administracyjne, automatyzacje, integracje API oraz rozwiązania działające na serwerach Linux.</p>
-          <div className="mt-8 flex flex-wrap gap-3"><Link to="/portfolio" className="btn-primary">Zobacz portfolio <ArrowRight size={18} /></Link><Link to="/kontakt" className="btn-secondary">Zapytaj o wycenę</Link></div>
+          <div className="mt-8 flex flex-wrap gap-3"><Link to="/portfolio" className="btn-primary">Zobacz portfolio <ArrowRight size={18} /></Link><Link to="/kontakt" className="btn-secondary">Opisz swój projekt</Link></div>
           <ul className="mt-8 flex flex-wrap gap-x-5 gap-y-2 text-sm font-semibold text-slate-700">{["Od 2019 roku", "Aplikacje webowe", "Automatyzacje", "API", "Linux i VPS", "E-commerce"].map(x => <li key={x} className="flex items-center gap-2"><Check className="text-blue-600" size={17} />{x}</li>)}</ul>
         </div>
-        <div className="hero-visual" aria-label="Schemat łączący aplikację, automatyzację i serwer">
-          <div className="code-window"><span /><span /><span /><pre>{`projekt → aplikacja\n       ↘ API\n       ↘ automatyzacja\n       ↘ Linux / VPS\n\nstatus: gotowe do rozwoju`}</pre></div>
-          <div className="float-card float-card-one"><Workflow /> Automatyzacja</div><div className="float-card float-card-two"><Server /> Stabilne wdrożenie</div>
-        </div>
+        <picture className="hero-illustration">
+          <source media="(max-width: 767px)" srcSet="/hero-system-mobile.svg" width="720" height="390" />
+          <img src="/hero-system-desktop.svg" width="760" height="680" alt="Aplikacja webowa połączona z API, automatyzacją i serwerem Linux" fetchPriority="high" decoding="async" />
+        </picture>
       </div>
     </section>
     <section className="section bg-slate-50"><div className="site-container"><Eyebrow>Jak mogę pomóc</Eyebrow><h2 className="section-title">Rozwiązania skupione na problemie, nie na liście technologii</h2>
@@ -75,7 +75,7 @@ export function ServicesPage() {
 export function PortfolioPage() {
   const schemas = projects.map(p => ({ "@context": "https://schema.org", "@type": "CreativeWork", name: p.title, description: p.solution, url: p.live }));
   return <main id="main-content"><Seo title={pageMeta.portfolio[0]} description={pageMeta.portfolio[1]} path="/portfolio" schema={schemas} /><Breadcrumb current="Portfolio" /><PageHero eyebrow="Portfolio" title="Projekty, w których kod spotyka się z działającym wdrożeniem" lead="Wybrane rozwiązania pokazują doświadczenie z aplikacjami webowymi, automatyzacją, API, danymi oraz infrastrukturą Linux." />
-    <section className="section pt-0"><div className="site-container grid gap-8">{projects.map(p => <article id={p.id} className="portfolio-detail" key={p.id}><div><p className="status">{p.status}</p><h2>{p.title}</h2><div className="project-copy"><h3>Problem</h3><p>{p.problem}</p><h3>Zakres rozwiązania</h3><p>{p.solution}</p><h3>Mój wkład</h3><p>{p.contribution}</p><h3>Rezultat</h3><p>{p.result}</p>{"note" in p && p.note && <p className="note">{p.note}</p>}</div></div><aside><h3>Technologie</h3><div className="tags">{p.tech.map(t => <span key={t}>{t}</span>)}</div><div className="mt-6 grid gap-3">{"live" in p && p.live && <a className="btn-primary justify-center" href={p.live} target="_blank" rel="noreferrer">Zobacz publiczny serwis <ExternalLink size={17} /></a>}{"repo" in p && p.repo && <a className="btn-secondary justify-center" href={p.repo} target="_blank" rel="noreferrer"><Github size={17} />Zobacz repozytorium</a>}</div></aside></article>)}</div></section>
+    <section className="section pt-0"><div className="site-container grid gap-8">{projects.map(p => <article id={p.id} className="portfolio-detail" key={p.id}><div><p className="status">{p.status}</p><h2>{p.title}</h2><div className="project-copy"><h3>Problem</h3><p>{p.problem}</p><h3>Zakres rozwiązania</h3><p>{p.solution}</p><h3>Mój wkład</h3><p>{p.contribution}</p><h3>Rezultat</h3><p>{p.result}</p>{"note" in p && p.note && <p className="note">{p.note}</p>}</div></div><aside><h3>Technologie</h3><div className="tags">{p.tech.map(t => <span key={t}>{t}</span>)}</div><div className="mt-6 grid gap-3">{"live" in p && p.live && <a className="btn-primary justify-center" href={p.live} target="_blank" rel="noopener noreferrer">Zobacz publiczny serwis <ExternalLink size={17} /></a>}{"channel" in p && p.channel && <a className="btn-secondary justify-center" href={p.channel} target="_blank" rel="noopener noreferrer"><Youtube size={17} />Zobacz kanał YouTube</a>}{"repo" in p && p.repo && <a className="btn-secondary justify-center" href={p.repo} target="_blank" rel="noopener noreferrer"><Github size={17} />Zobacz repozytorium</a>}</div></aside></article>)}</div></section>
     <section className="section bg-slate-50"><div className="site-container max-w-4xl"><Eyebrow>Doświadczenie zawodowe</Eyebrow><h2 className="section-title">Doświadczenie w rozwoju sklepów internetowych</h2><p className="lead mt-5">Od 2019 roku uczestniczę w rozwoju i utrzymaniu sklepów internetowych mdd.pl oraz mdd.eu. Zakres pracy obejmuje rozwój funkcjonalności, poprawki, optymalizację, integracje, pracę z danymi i rozwiązywanie problemów technicznych.</p></div></section><FinalCta /></main>;
 }
 

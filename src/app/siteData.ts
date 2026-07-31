@@ -75,7 +75,6 @@ export const projects = [
     tech: ["Python", "FastAPI", "JavaScript", "HTML", "CSS", "SQLite", "SourcePawn", "SourceMod", "SteamCMD", "RCON", "nginx", "systemd", "Bash", "GitHub Actions"],
     result: "Spójne narzędzie upraszcza zarządzanie usługami, kampaniami i dostępem oraz pozwala wcześniej zauważać problemy dzięki health checkom, logom i watchdogowi.",
     live: "https://gry.lemanczyk-it.pl",
-    repo: "https://github.com/Divithy-IT/lemanczyk-platform",
   },
   {
     id: "youtube-automation",
@@ -87,6 +86,7 @@ export const projects = [
     tech: ["Python", "YouTube Data API", "przetwarzanie plików", "JSON", "harmonogramy"],
     result: "Powtarzalny proces łączy przygotowanie materiału i publikację, ograniczając liczbę ręcznych kroków.",
     note: "Kod pozostaje prywatny — szczegóły techniczne są dostępne podczas rozmowy.",
+    channel: "https://www.youtube.com/@Divithy",
   },
   {
     id: "lekkaforma",
