@@ -14,7 +14,7 @@ Profesjonalna strona ofertowa Lemanczyk-IT, zbudowana z naciskiem na wydajność
 - responsywna nawigacja ze sticky headerem i pełną obsługą klawiatury;
 - dedykowane warianty ilustracji hero dla desktopu i mobile;
 - portfolio z bezpiecznymi linkami do publicznych realizacji i profili;
-- formularz kontaktowy z walidacją backendową, honeypotem i rate limitingiem;
+- formularz kontaktowy z walidacją backendową, Cloudflare Turnstile, honeypotem i limitem jednej skutecznej wiadomości na 180 sekund;
 - uwierzytelniona wysyłka SMTP z konfiguracją poza repozytorium;
 - statyczne dokumenty HTML dla robotów oraz strona 404.
 
@@ -40,11 +40,13 @@ Interfejs zapewnia skip link, widoczne focus states, etykiety formularza, semant
 
 ## Bezpieczeństwo
 
-Endpoint kontaktowy ustala odbiorcę po stronie serwera, odrzuca próby wstrzyknięcia nagłówków, ogranicza długość pól i częstotliwość wysyłki oraz zwraca kontrolowane komunikaty. Hasło SMTP nigdy nie trafia do kodu, frontendu ani GitHub Actions.
+Endpoint kontaktowy ustala odbiorcę po stronie serwera, odrzuca próby wstrzyknięcia nagłówków, weryfikuje token Turnstile, ogranicza długość pól i częstotliwość wysyłki oraz zawsze zwraca kontrolowany JSON. Hasła SMTP, klucz CAPTCHA i sekret anonimizujący nigdy nie trafiają do kodu, frontendu ani GitHub Actions.
 
 ## Formularz kontaktowy
 
 Mailer używa SMTP submission przez STARTTLS. `.env.example` dokumentuje wyłącznie nazwy wymaganych ustawień. Produkcyjna konfiguracja jest przechowywana poza repozytorium z uprawnieniami `0600`. Pole `From` należy do domeny serwisu, adres klienta trafia do `Reply-To`, a odbiorca jest stały.
+
+Turnstile wymaga widgetu typu Managed ograniczonego do `lemanczyk-it.pl` i `www.lemanczyk-it.pl`. Klucze zapisuje interaktywnie `scripts/configure-turnstile-keys.sh`; publiczny site key trafia do przeglądarki przez kontrolowany endpoint, a secret key pozostaje wyłącznie po stronie serwera.
 
 ## Uruchomienie lokalne
 

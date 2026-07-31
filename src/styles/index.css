@@ -18,7 +18,8 @@ a, button, input, textarea, select { outline-offset: 3px; }
 .nav-link { padding: .65rem .85rem; border-radius: .75rem; font-weight: 650; color: #475569; }
 .nav-link:hover, .nav-link-active { background: #eff6ff; color: #1d4ed8; }
 .icon-button { display: inline-grid; place-items: center; width: 2.75rem; height: 2.75rem; border: 1px solid #cbd5e1; border-radius: .8rem; background: white; cursor: pointer; }
-.site-header { min-height: 5rem; isolation: isolate; }
+.site-header { position: fixed !important; inset: 0 0 auto; width: 100%; min-height: 5rem; isolation: isolate; }
+.site-header-spacer { height: 5rem; }
 .mobile-menu-controls, .mobile-menu { display: none; }
 
 .btn-primary, .btn-secondary, .btn-light, .btn-outline-light {
@@ -68,6 +69,9 @@ a, button, input, textarea, select { outline-offset: 3px; }
 .prose-grid h2, .highlight-box h2, .legal h2 { font: 750 clamp(1.5rem, 3vw, 2.2rem)/1.2 "Sora"; letter-spacing: -.025em; }
 .prose-grid p, .legal p { margin-top: 1rem; color: #475569; line-height: 1.8; }
 .highlight-box { align-self: start; padding: 2rem; border-radius: 1.4rem; background: #eff6ff; border: 1px solid #bfdbfe; }.highlight-box a { color: #1d4ed8; text-decoration: underline; }
+.about-aside { display: grid; gap: 1.25rem; align-self: start; }
+.about-portrait { display: block; width: min(100%, 390px); margin-inline: auto; overflow: hidden; border: 1px solid #bfdbfe; border-radius: 1.5rem; background: #eff6ff; box-shadow: 0 24px 55px #0f172a1f; }
+.about-portrait img { display: block; width: 100%; height: auto; aspect-ratio: 3 / 4; object-fit: cover; }
 .mini-card { display: flex; align-items: center; gap: .75rem; padding: 1.1rem; border: 1px solid #e2e8f0; border-radius: 1rem; background: white; font-weight: 700; }.mini-card svg { color: #2563eb; }
 .service-detail { scroll-margin-top: 7rem; display: grid; grid-template-columns: 100px 1fr; gap: 2rem; padding: clamp(1.5rem, 4vw, 3rem); border: 1px solid #e2e8f0; border-radius: 1.5rem; }
 .service-number { color: #93c5fd; font: 800 2rem "Sora"; }
@@ -86,6 +90,9 @@ form input:not([type="checkbox"]), form textarea, form select { width: 100%; bor
 form input:focus, form textarea:focus, form select:focus { border-color: #2563eb; box-shadow: 0 0 0 3px #dbeafe; outline: 0; }
 .form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }.flex-row-label { display: flex; grid-template-columns: auto 1fr; align-items: flex-start; }.flex-row-label input { flex: none; width: 1.1rem; height: 1.1rem; margin-top: .2rem; }
 .hp-field { position: absolute; left: -10000px; width: 1px; height: 1px; overflow: hidden; }.form-success, .form-error { padding: .8rem; border-radius: .7rem; }.form-success { background: #dcfce7; color: #166534; }.form-error { background: #fee2e2; color: #991b1b; }
+.captcha-wrap { min-height: 70px; }
+.captcha-fallback { color: #7f1d1d; font-size: .9rem; line-height: 1.5; }
+.form-cooldown { color: #475569; font-size: .9rem; }
 .legal { max-width: 850px; }.legal h2 { margin-top: 2.5rem; font-size: 1.5rem; }.legal a { color: #1d4ed8; text-decoration: underline; }
 
 @media (prefers-reduced-motion: reduce) {

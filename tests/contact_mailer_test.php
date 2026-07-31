@@ -3,30 +3,31 @@ declare(strict_types=1);
 require_once __DIR__ . '/../api/contact_lib.php';
 
 $base = ['name'=>'Firma Test','email'=>'client@example.com','phone'=>'123456789','subject'=>'Nowa aplikacja','message'=>'To jest wystarczająco długa wiadomość testowa.','budget'=>'10–20 tys.','deadline'=>'Q4','privacy'=>'yes','website'=>''];
-$config = ['MAIL_FROM'=>'michal@lemanczyk-it.pl','MAIL_TO'=>'michal@lemanczyk-it.pl'];
+$config = ['MAIL_FROM'=>'michal@lemanczyk-it.pl','MAIL_TO'=>'michal@lemanczyk-it.pl','CAPTCHA_SECRET_KEY'=>'test-secret'];
 $tests = 0;
 function check(bool $condition, string $message): void { global $tests; $tests++; if (!$condition) throw new RuntimeException($message); }
 function reason(array $input): string { try { validateContact($input); return 'none'; } catch (ContactError $e) { return $e->reason; } }
+function captchaReason(string $token, array $config, array $result): string { try { verifyTurnstile($token, $config, static fn()=> $result, '192.0.2.1'); return 'none'; } catch (ContactError $e) { return $e->reason; } }
 
 $data = validateContact($base); $mail = buildContactMail($data, $config, 'abc123', new DateTimeImmutable('2026-07-31 10:00:00 UTC'));
-check($mail['from'] === 'michal@lemanczyk-it.pl', 'stały From');
-check($mail['to'] === 'michal@lemanczyk-it.pl', 'stały To');
-check($mail['reply_to'] === 'client@example.com', 'Reply-To klienta');
-check(str_starts_with($mail['subject'], '[Lemanczyk-IT] Nowe zapytanie:'), 'prefiks tematu');
-check(str_contains($mail['body'], 'abc123'), 'identyfikator');
-check(reason([...$base, 'email'=>'bad']) === 'invalid_email', 'email');
-check(reason([...$base, 'privacy'=>'']) === 'required', 'zgoda');
-check(reason([...$base, 'website'=>'spam']) === 'honeypot', 'honeypot');
-check(reason([...$base, 'subject'=>"temat\nBcc: x@example.com"]) === 'header_injection', 'newline injection');
+check($mail['from'] === 'michal@lemanczyk-it.pl', 'stały From'); check($mail['to'] === 'michal@lemanczyk-it.pl', 'stały To');
+check($mail['reply_to'] === 'client@example.com', 'Reply-To klienta'); check(str_starts_with($mail['subject'], '[Lemanczyk-IT] Nowe zapytanie:'), 'prefiks tematu');
+check(str_contains($mail['body'], 'abc123'), 'identyfikator'); check(str_contains(buildContactMail([...$data, 'message'=>'<script>alert(1)</script>'], $config, 'x', new DateTimeImmutable())['body'], '<script>'), 'XSS pozostaje tekstem plain text');
+check(reason([...$base, 'email'=>'bad']) === 'invalid_email', 'email'); check(reason([...$base, 'privacy'=>'']) === 'required', 'zgoda');
+check(reason([...$base, 'website'=>'spam']) === 'honeypot', 'honeypot'); check(reason([...$base, 'subject'=>"temat\nBcc: x@example.com"]) === 'header_injection', 'CRLF');
 check(reason([...$base, 'message'=>str_repeat('a', 5001)]) === 'field_too_long', 'limit długości');
+check(captchaReason('', $config, []) === 'captcha_empty', 'CAPTCHA pusta'); check(captchaReason('bad', $config, ['success'=>false]) === 'captcha_rejected', 'CAPTCHA błędna');
+check(captchaReason('ok', $config, ['success'=>true,'hostname'=>'evil.example']) === 'captcha_hostname', 'hostname CAPTCHA');
+check(captchaReason('ok', $config, ['success'=>true,'hostname'=>'lemanczyk-it.pl']) === 'none', 'CAPTCHA poprawna');
 
-$dir = sys_get_temp_dir() . '/lemanczyk-rate-test-' . bin2hex(random_bytes(4));
-enforceContactRateLimit('test', $dir, 60);
-try { enforceContactRateLimit('test', $dir, 60); check(false, 'rate limit'); } catch (ContactError $e) { check($e->reason === 'rate_limit', 'rate limit'); }
-unlink($dir . '/' . hash('sha256', 'test')); rmdir($dir);
+$dir = sys_get_temp_dir() . '/lemanczyk-rate-test-' . bin2hex(random_bytes(4)); $keys = rateLimitKeys('192.0.2.1', 'CLIENT@example.com', 'rate-secret');
+check(contactRateRemaining($keys, $dir, 180, 100) === 0, 'pierwsza wiadomość'); markContactSent($keys, $dir, 100);
+check(contactRateRemaining($keys, $dir, 180, 100) === 180, 'druga blokowana'); check(contactRateRemaining($keys, $dir, 180, 279) === 1, 'Retry-After');
+check(contactRateRemaining($keys, $dir, 180, 280) === 0, 'wiadomość po 180 s'); check(!str_contains(implode('', array_keys(array_flip($keys))), '192.0.2.1'), 'anonimizacja');
+foreach (glob($dir . '/*') ?: [] as $file) unlink($file); rmdir($dir);
 
-foreach (['smtp_timeout','smtp_authentication','smtp_unavailable'] as $failure) {
-    $mockSmtp = static function(array $message) use ($failure): void { throw new RuntimeException($failure); };
-    try { $mockSmtp($mail); check(false, $failure); } catch (RuntimeException $e) { check($e->getMessage() === $failure, $failure); }
+foreach (['smtp_timeout','smtp_authentication','smtp_unavailable','smtp_success'] as $result) {
+    $mock = static function(array $message) use ($result): void { if ($result !== 'smtp_success') throw new RuntimeException($result); };
+    try { $mock($mail); check($result === 'smtp_success', $result); } catch (RuntimeException $e) { check($e->getMessage() === $result, $result); }
 }
-echo "Testy formularza SMTP: $tests OK\n";
+echo "Testy formularza, SMTP, CAPTCHA i rate limitu: $tests OK\n";

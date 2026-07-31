@@ -93,5 +93,5 @@ export default function SiteChrome() {
       window.location.replace(legacy[window.location.hash]);
     }
   }, []);
-  return <><Header /><Outlet /><Footer /></>;
+  return <><Header /><div className="site-header-spacer" aria-hidden="true" /><Outlet /><Footer /></>;
 }

@@ -33,4 +33,4 @@ for (const file of ["robots.txt", "sitemap.xml", "og-image.svg", "site.webmanife
   await copyFile(file, path.join("dist", file));
 }
 await mkdir("dist/api", { recursive: true });
-for (const file of ["contact.php", "contact_lib.php", "SmtpMailer.php"]) await copyFile(`api/${file}`, `dist/api/${file}`);
+for (const file of ["contact.php", "contact-config.php", "contact_lib.php", "SmtpMailer.php"]) await copyFile(`api/${file}`, `dist/api/${file}`);
