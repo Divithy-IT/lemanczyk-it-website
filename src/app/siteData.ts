@@ -108,5 +108,6 @@ export const projects = [
     tech: ["React", "TypeScript", "Vite", "PHP", "nginx", "Linux", "HTTPS"],
     result: "Oferta, doświadczenie i droga do kontaktu są uporządkowane wokół potrzeb potencjalnego klienta.",
     live: "https://lemanczyk-it.pl",
+    repo: "https://github.com/Divithy-IT/lemanczyk-it-website",
   },
 ] as const;
