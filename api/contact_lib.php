@@ -65,9 +65,10 @@ function verifyTurnstile(string $token, array $config, callable $request, ?strin
     if ($remoteIp !== null && filter_var($remoteIp, FILTER_VALIDATE_IP)) $payload['remoteip'] = $remoteIp;
     try { $result = $request('https://challenges.cloudflare.com/turnstile/v0/siteverify', $payload, 8); }
     catch (Throwable) { throw new ContactError(503, 'captcha_unavailable', 'Zabezpieczenie formularza jest chwilowo niedostępne. Spróbuj ponownie później lub napisz bezpośrednio na michal@lemanczyk-it.pl.', 'captcha_transport'); }
-    if (!is_array($result) || ($result['success'] ?? false) !== true) throw new ContactError(400, 'captcha_failed', 'Nie udało się potwierdzić zabezpieczenia formularza. Spróbuj ponownie.', 'captcha_rejected');
+    if (!is_array($result) || ($result['success'] ?? false) !== true) throw new ContactError(400, 'captcha_failed', 'Nie udało się potwierdzić zabezpieczenia formularza. Spróbuj ponownie lub napisz bezpośrednio na michal@lemanczyk-it.pl.', 'captcha_rejected');
     $hostname = strtolower((string)($result['hostname'] ?? ''));
-    if ($hostname !== '' && !in_array($hostname, ['lemanczyk-it.pl', 'www.lemanczyk-it.pl'], true)) throw new ContactError(400, 'captcha_failed', 'Nie udało się potwierdzić zabezpieczenia formularza. Spróbuj ponownie.', 'captcha_hostname');
+    if (!in_array($hostname, ['lemanczyk-it.pl', 'www.lemanczyk-it.pl'], true)) throw new ContactError(400, 'captcha_failed', 'Nie udało się potwierdzić zabezpieczenia formularza. Spróbuj ponownie lub napisz bezpośrednio na michal@lemanczyk-it.pl.', 'captcha_hostname');
+    if (($result['action'] ?? '') !== 'contact_form') throw new ContactError(400, 'captcha_failed', 'Nie udało się potwierdzić zabezpieczenia formularza. Spróbuj ponownie lub napisz bezpośrednio na michal@lemanczyk-it.pl.', 'captcha_action');
 }
 
 function turnstileHttpRequest(string $url, array $payload, int $timeout): array {

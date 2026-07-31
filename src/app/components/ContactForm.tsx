@@ -1,4 +1,5 @@
 import { FormEvent, useEffect, useRef, useState } from "react";
+import { ShieldCheck } from "lucide-react";
 
 declare global {
   interface Window {
@@ -35,9 +36,9 @@ export function ContactForm() {
         if (!window.turnstile) await new Promise<void>((resolve, reject) => { script!.addEventListener("load", () => resolve(), { once: true }); script!.addEventListener("error", () => reject(new Error("captcha_script")), { once: true }); });
         if (!active || !captchaElement.current || !window.turnstile) return;
         widgetId.current = window.turnstile.render(captchaElement.current, {
-          sitekey: config.captcha.siteKey, theme: "light", language: "pl", appearance: "interaction-only",
+          sitekey: config.captcha.siteKey, theme: "light", language: "pl", appearance: "interaction-only", execution: "render", retry: "auto", "refresh-expired": "auto", action: "contact_form",
           callback: (token: string) => { setCaptchaToken(token); setCaptcha("ready"); },
-          "expired-callback": () => { setCaptchaToken(""); setCaptcha("ready"); },
+          "expired-callback": () => { setCaptchaToken(""); setCaptcha("loading"); },
           "error-callback": () => { setCaptchaToken(""); setCaptcha("unavailable"); },
         });
         setCaptcha("ready");
@@ -94,6 +95,7 @@ export function ContactForm() {
       <div className="hp-field" aria-hidden="true"><label>Strona internetowa<input name="website" tabIndex={-1} autoComplete="off" /></label></div>
       <label className="flex-row-label"><input name="privacy" type="checkbox" value="yes" required /> <span>Akceptuję <a className="text-blue-700 underline" href="/polityka-prywatnosci">politykę prywatności</a> i przetwarzanie danych w celu odpowiedzi na wiadomość.</span></label>
       <div className="captcha-wrap"><div ref={captchaElement} />{captcha === "loading" && <p>Ładowanie zabezpieczenia formularza…</p>}{captcha === "unavailable" && <p className="captcha-fallback">Zabezpieczenie formularza nie zostało załadowane. Możesz napisać bezpośrednio na <a href="mailto:michal@lemanczyk-it.pl">michal@lemanczyk-it.pl</a>.</p>}</div>
+      <p className="captcha-note"><ShieldCheck size={16} aria-hidden="true" /> <span>Formularz jest chroniony przez Cloudflare Turnstile oraz limit wysyłki. Obowiązują <a href="https://www.cloudflare.com/privacypolicy/" target="_blank" rel="noopener noreferrer">zasady prywatności</a> i <a href="https://www.cloudflare.com/website-terms/" target="_blank" rel="noopener noreferrer">warunki Cloudflare</a>.</span></p>
       <button className="btn-primary justify-center sm:justify-self-start" type="submit" disabled={disabled}>{state.kind === "sending" ? "Wysyłanie…" : cooldown > 0 ? `Ponowna wysyłka za ${cooldown} s` : "Wyślij zapytanie"}</button>
       {cooldown > 0 && <p className="form-cooldown">Kolejną wiadomość możesz wysłać po zakończeniu odliczania.</p>}
       {state.kind !== "idle" && state.kind !== "sending" && <p ref={messageRef} tabIndex={-1} role="status" aria-live="polite" className={state.kind === "success" ? "form-success" : "form-error"}>{state.message}</p>}

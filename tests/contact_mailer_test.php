@@ -17,8 +17,12 @@ check(reason([...$base, 'email'=>'bad']) === 'invalid', 'email'); check(reason([
 check(reason([...$base, 'website'=>'spam']) === 'honeypot', 'honeypot'); check(reason([...$base, 'subject'=>"temat\nBcc: x@example.com"]) === 'invalid', 'CRLF');
 check(reason([...$base, 'message'=>str_repeat('a', 5001)]) === 'too_long', 'limit długości'); check(reason([...$base, 'message'=>'za krótka']) === 'too_short', 'minimalna długość');
 check(captchaReason('', $config, []) === 'captcha_empty', 'CAPTCHA pusta'); check(captchaReason('bad', $config, ['success'=>false]) === 'captcha_rejected', 'CAPTCHA błędna');
-check(captchaReason('ok', $config, ['success'=>true,'hostname'=>'evil.example']) === 'captcha_hostname', 'hostname CAPTCHA');
-check(captchaReason('ok', $config, ['success'=>true,'hostname'=>'lemanczyk-it.pl']) === 'none', 'CAPTCHA poprawna');
+check(captchaReason('ok', $config, ['success'=>true,'hostname'=>'evil.example','action'=>'contact_form']) === 'captcha_hostname', 'hostname CAPTCHA');
+check(captchaReason('ok', $config, ['success'=>true,'hostname'=>'','action'=>'contact_form']) === 'captcha_hostname', 'brak hostname CAPTCHA');
+check(captchaReason('ok', $config, ['success'=>true,'hostname'=>'lemanczyk-it.pl','action'=>'wrong']) === 'captcha_action', 'action CAPTCHA');
+check(captchaReason('ok', $config, ['success'=>true,'hostname'=>'lemanczyk-it.pl','action'=>'contact_form']) === 'none', 'CAPTCHA poprawna');
+try { verifyTurnstile('ok', $config, static function(): never { throw new RuntimeException('timeout'); }); check(false, 'timeout CAPTCHA'); } catch (ContactError $e) { check($e->reason === 'captcha_transport' && $e->status === 503, 'timeout CAPTCHA'); }
+check(captchaReason('used-token', $config, ['success'=>false,'error-codes'=>['timeout-or-duplicate']]) === 'captcha_rejected', 'ponowne użycie tokenu');
 
 $dir = sys_get_temp_dir() . '/lemanczyk-rate-test-' . bin2hex(random_bytes(4)); $keys = rateLimitKeys('192.0.2.1', 'CLIENT@example.com', 'rate-secret');
 check(contactRateRemaining($keys, $dir, 180, 100) === 0, 'pierwsza wiadomość'); markContactSent($keys, $dir, 100);
