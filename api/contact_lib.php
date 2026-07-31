@@ -2,14 +2,14 @@
 declare(strict_types=1);
 
 final class ContactError extends RuntimeException {
-    public function __construct(public readonly int $status, public readonly string $publicCode, string $message, public readonly string $reason, public readonly int $retryAfter = 0) {
+    public function __construct(public readonly int $status, public readonly string $publicCode, string $message, public readonly string $reason, public readonly int $retryAfter = 0, public readonly ?string $field = null) {
         parent::__construct($message);
     }
 }
 
 function contactField(array $input, string $name, int $max): string {
     $value = trim((string)($input[$name] ?? ''));
-    if (mb_strlen($value) > $max) throw new ContactError(422, 'validation_error', 'Sprawdź wymagane pola formularza.', 'field_too_long');
+    if (mb_strlen($value) > $max) throw new ContactError(422, 'validation_error', 'Sprawdź wymagane pola formularza.', 'too_long', 0, $name);
     return $value;
 }
 
@@ -21,14 +21,28 @@ function validateContact(array $input): array {
         'message' => contactField($input, 'message', 5000), 'budget' => contactField($input, 'budget', 80),
         'deadline' => contactField($input, 'deadline', 100),
     ];
-    if ($data['name'] === '' || $data['subject'] === '' || mb_strlen($data['message']) < 20 || ($input['privacy'] ?? '') !== 'yes') {
-        throw new ContactError(422, 'validation_error', 'Sprawdź wymagane pola formularza.', 'required');
-    }
-    if (!filter_var($data['email'], FILTER_VALIDATE_EMAIL)) throw new ContactError(422, 'validation_error', 'Sprawdź wymagane pola formularza.', 'invalid_email');
+    if ($data['name'] === '') throw new ContactError(422, 'validation_error', 'Uzupełnij pole „Imię lub firma”.', 'missing', 0, 'name');
+    if ($data['email'] === '') throw new ContactError(422, 'validation_error', 'Uzupełnij adres e-mail.', 'missing', 0, 'email');
+    if (!filter_var($data['email'], FILTER_VALIDATE_EMAIL)) throw new ContactError(422, 'validation_error', 'Podaj poprawny adres e-mail.', 'invalid', 0, 'email');
+    if ($data['subject'] === '') throw new ContactError(422, 'validation_error', 'Uzupełnij temat wiadomości.', 'missing', 0, 'subject');
+    if ($data['message'] === '') throw new ContactError(422, 'validation_error', 'Uzupełnij opis projektu.', 'missing', 0, 'message');
+    if (mb_strlen($data['message']) < 20) throw new ContactError(422, 'validation_error', 'Opis projektu musi mieć co najmniej 20 znaków.', 'too_short', 0, 'message');
+    if (($input['privacy'] ?? '') !== 'yes') throw new ContactError(422, 'validation_error', 'Zaakceptuj politykę prywatności.', 'not_accepted', 0, 'privacy');
     foreach (['email', 'subject', 'name'] as $headerField) {
-        if (preg_match('/[\r\n]/', $data[$headerField])) throw new ContactError(422, 'validation_error', 'Sprawdź wymagane pola formularza.', 'header_injection');
+        if (preg_match('/[\r\n]/', $data[$headerField])) throw new ContactError(422, 'validation_error', 'Pole zawiera niedozwolone znaki.', 'invalid', 0, $headerField);
     }
     return $data;
+}
+
+function debugContactValidation(array $input, ContactError $error): void {
+    if (getenv('CONTACT_DEBUG') !== '1' || $error->publicCode !== 'validation_error') return;
+    $safe = [];
+    foreach (['name','email','phone','subject','message','budget','deadline','website','privacy','cf-turnstile-response'] as $field) {
+        $value = (string)($input[$field] ?? '');
+        $safe[$field] = ['received' => array_key_exists($field, $input), 'empty' => trim($value) === '', 'length' => mb_strlen($value)];
+        if ($field === 'cf-turnstile-response') unset($safe[$field]['length']);
+    }
+    error_log('Contact validation debug=' . json_encode(['fields' => $safe, 'failed_field' => $error->field, 'reason' => $error->reason], JSON_UNESCAPED_SLASHES));
 }
 
 function buildContactMail(array $data, array $config, string $requestId, DateTimeImmutable $sentAt): array {

@@ -13,9 +13,9 @@ $data = validateContact($base); $mail = buildContactMail($data, $config, 'abc123
 check($mail['from'] === 'michal@lemanczyk-it.pl', 'stały From'); check($mail['to'] === 'michal@lemanczyk-it.pl', 'stały To');
 check($mail['reply_to'] === 'client@example.com', 'Reply-To klienta'); check(str_starts_with($mail['subject'], '[Lemanczyk-IT] Nowe zapytanie:'), 'prefiks tematu');
 check(str_contains($mail['body'], 'abc123'), 'identyfikator'); check(str_contains(buildContactMail([...$data, 'message'=>'<script>alert(1)</script>'], $config, 'x', new DateTimeImmutable())['body'], '<script>'), 'XSS pozostaje tekstem plain text');
-check(reason([...$base, 'email'=>'bad']) === 'invalid_email', 'email'); check(reason([...$base, 'privacy'=>'']) === 'required', 'zgoda');
-check(reason([...$base, 'website'=>'spam']) === 'honeypot', 'honeypot'); check(reason([...$base, 'subject'=>"temat\nBcc: x@example.com"]) === 'header_injection', 'CRLF');
-check(reason([...$base, 'message'=>str_repeat('a', 5001)]) === 'field_too_long', 'limit długości');
+check(reason([...$base, 'email'=>'bad']) === 'invalid', 'email'); check(reason([...$base, 'privacy'=>'']) === 'not_accepted', 'zgoda');
+check(reason([...$base, 'website'=>'spam']) === 'honeypot', 'honeypot'); check(reason([...$base, 'subject'=>"temat\nBcc: x@example.com"]) === 'invalid', 'CRLF');
+check(reason([...$base, 'message'=>str_repeat('a', 5001)]) === 'too_long', 'limit długości'); check(reason([...$base, 'message'=>'za krótka']) === 'too_short', 'minimalna długość');
 check(captchaReason('', $config, []) === 'captcha_empty', 'CAPTCHA pusta'); check(captchaReason('bad', $config, ['success'=>false]) === 'captcha_rejected', 'CAPTCHA błędna');
 check(captchaReason('ok', $config, ['success'=>true,'hostname'=>'evil.example']) === 'captcha_hostname', 'hostname CAPTCHA');
 check(captchaReason('ok', $config, ['success'=>true,'hostname'=>'lemanczyk-it.pl']) === 'none', 'CAPTCHA poprawna');

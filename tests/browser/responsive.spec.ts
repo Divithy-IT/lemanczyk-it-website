@@ -42,3 +42,9 @@ test("frontend nie pokazuje HTML ani Unexpected token", async ({ page }) => {
   await page.route("**/api/contact.php", route => route.fulfill({ status: 502, contentType: "text/html", body: "<html><h1>Bad Gateway</h1></html>" }));
   await prepareForm(page); await page.getByRole("button", { name: "Wyślij zapytanie" }).click(); const status = page.getByRole("status"); await expect(status).toContainText("Nie udało się teraz wysłać"); await expect(status).not.toContainText("Unexpected token"); await expect(status).not.toContainText("<html>");
 });
+
+test("natywna walidacja blokuje opis krótszy niż 20 znaków", async ({ page }) => {
+  await prepareForm(page); await page.getByLabel("Opis projektu").fill("Za krótko");
+  await page.locator('button[type="submit"]').click();
+  expect(await page.getByLabel("Opis projektu").evaluate((element: HTMLTextAreaElement) => element.validity.tooShort)).toBeTruthy();
+});

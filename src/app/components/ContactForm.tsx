@@ -86,7 +86,7 @@ export function ContactForm() {
 
   const disabled = state.kind === "sending" || cooldown > 0 || captcha !== "ready" || !captchaToken;
   return (
-    <form className="card grid gap-5 p-6 sm:p-8" onSubmit={submit} noValidate aria-busy={state.kind === "sending"}>
+    <form className="card grid gap-5 p-6 sm:p-8" onSubmit={submit} aria-busy={state.kind === "sending"}>
       <div className="form-grid"><label>Imię lub firma <input name="name" required maxLength={120} autoComplete="name" /></label><label>E-mail <input name="email" type="email" required maxLength={190} autoComplete="email" /></label></div>
       <div className="form-grid"><label>Telefon <span className="text-slate-500">(opcjonalnie)</span><input name="phone" type="tel" maxLength={40} autoComplete="tel" /></label><label>Temat <input name="subject" required maxLength={160} /></label></div>
       <label>Opis projektu <textarea name="message" required minLength={20} maxLength={5000} rows={7} placeholder="Napisz, czego potrzebujesz, jaki problem chcesz rozwiązać i jaki termin bierzesz pod uwagę." /></label>
