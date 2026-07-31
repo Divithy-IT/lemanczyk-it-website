@@ -35,7 +35,6 @@ export function Seo({ title, description, path, schema }: Props) {
       script.text = JSON.stringify(schema);
       document.head.appendChild(script);
     }
-    window.scrollTo(0, 0);
   }, [title, description, path, schema]);
   return null;
 }

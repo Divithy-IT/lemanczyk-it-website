@@ -8,6 +8,7 @@
     "dev": "cp index.source.html index.html && vite",
     "prod": "npm run build",
     "test:ui": "playwright test",
+    "test:fragments": "playwright test tests/browser/anchors.spec.ts",
     "test": "npm run build && node scripts/check-site.mjs && node scripts/check-ui.mjs && php -l api/contact.php && php -l api/contact_lib.php && php -l api/SmtpMailer.php && php tests/contact_mailer_test.php"
   },
   "dependencies": {

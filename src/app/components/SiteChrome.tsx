@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Github, Mail, Menu, Phone, X } from "lucide-react";
 import { NavLink, Outlet, useLocation } from "react-router";
 import { company, navigation } from "../siteData";
+import { AnchorNavigation } from "./AnchorNavigation";
 
 export function Header() {
   const [open, setOpen] = useState(false);
@@ -81,17 +82,5 @@ export function Footer() {
 }
 
 export default function SiteChrome() {
-  useEffect(() => {
-    const legacy: Record<string, string> = {
-      "#kontakt": "/kontakt",
-      "#uslugi": "/uslugi",
-      "#portfolio": "/portfolio",
-      "#technologie": "/technologie",
-      "#o-mnie": "/o-mnie",
-    };
-    if (window.location.pathname === "/" && legacy[window.location.hash]) {
-      window.location.replace(legacy[window.location.hash]);
-    }
-  }, []);
-  return <><Header /><div className="site-header-spacer" aria-hidden="true" /><Outlet /><Footer /></>;
+  return <><Header /><div className="site-header-spacer" aria-hidden="true" /><AnchorNavigation /><Outlet /><Footer /></>;
 }

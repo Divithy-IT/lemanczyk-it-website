@@ -3,8 +3,10 @@
 @import './theme.css';
 
 html {
+  --site-header-height: 5rem;
+  --anchor-safe-gap: 1rem;
   scroll-behavior: smooth;
-  scroll-padding-top: 6rem;
+  scroll-padding-top: calc(var(--site-header-height) + var(--anchor-safe-gap));
   overflow-x: hidden;
 }
 
@@ -81,14 +83,14 @@ a, button, input, textarea, select { outline-offset: 3px; }
 .about-portrait { display: block; width: 100%; overflow: hidden; border: 1px solid #bfdbfe; border-radius: 1.5rem; background: #eff6ff; box-shadow: 0 24px 55px #0f172a1f; }
 .about-portrait img { display: block; width: 100%; height: auto; aspect-ratio: 3 / 4; object-fit: cover; }
 .mini-card { display: flex; align-items: center; gap: .75rem; padding: 1.1rem; border: 1px solid #e2e8f0; border-radius: 1rem; background: white; font-weight: 700; }.mini-card svg { color: #2563eb; }
-.service-detail { scroll-margin-top: 7rem; display: grid; grid-template-columns: 100px 1fr; gap: 2rem; padding: clamp(1.5rem, 4vw, 3rem); border: 1px solid #e2e8f0; border-radius: 1.5rem; }
+.service-detail { display: grid; grid-template-columns: 100px 1fr; gap: 2rem; padding: clamp(1.5rem, 4vw, 3rem); border: 1px solid #e2e8f0; border-radius: 1.5rem; }
 .service-number { color: #93c5fd; font: 800 2rem "Sora"; }
 .service-detail h2, .portfolio-detail h2, .tech-grid h2 { font: 750 clamp(1.55rem, 3vw, 2.35rem)/1.2 "Sora"; letter-spacing: -.025em; }
 .service-detail h3, .project-copy h3 { margin-top: 1.5rem; font-weight: 800; color: #334155; }
 .lead-small { margin-top: .7rem; max-width: 800px; color: #475569; font-size: 1.1rem; line-height: 1.7; }
 .service-detail ul { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .65rem 1.5rem; margin-top: .9rem; color: #475569; }.service-detail li { display: flex; gap: .6rem; }.service-detail li svg { flex: none; margin-top: .2rem; color: #2563eb; }
 .benefit { margin-top: 1.4rem; padding: 1rem; border-radius: .8rem; background: #f8fafc; color: #475569; }
-.portfolio-detail { scroll-margin-top: 7rem; display: grid; grid-template-columns: 1.5fr .5fr; gap: 3rem; padding: clamp(1.5rem, 4vw, 3rem); border: 1px solid #e2e8f0; border-radius: 1.5rem; }
+.portfolio-detail { display: grid; grid-template-columns: 1.5fr .5fr; gap: 3rem; padding: clamp(1.5rem, 4vw, 3rem); border: 1px solid #e2e8f0; border-radius: 1.5rem; }
 .project-copy p { margin-top: .5rem; color: #475569; line-height: 1.75; }.note { padding: 1rem; background: #eff6ff; border-radius: .8rem; }
 .tags { display: flex; flex-wrap: wrap; gap: .55rem; }.tags span { padding: .45rem .7rem; border-radius: .6rem; background: #eff6ff; color: #1e40af; font-size: .85rem; font-weight: 700; }
 .tech-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1.25rem; }
@@ -111,8 +113,8 @@ form input:focus, form textarea:focus, form select:focus { border-color: #2563eb
   *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; }
 }
 
-section[id] {
-  scroll-margin-top: 6.5rem;
+[id] {
+  scroll-margin-top: calc(var(--site-header-height) + var(--anchor-safe-gap));
 }
 
 @media (max-width: 1023px) {

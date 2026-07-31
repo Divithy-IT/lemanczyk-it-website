@@ -33,3 +33,14 @@ for (const file of ["dist/robots.txt", "dist/sitemap.xml", "dist/site.webmanifes
 }
 if (failed) process.exit(1);
 console.log(`Sprawdzono ${routes.length} podstron: SEO i pliki techniczne OK.`);
+
+const pagesSource = await readFile("src/app/components/Pages.tsx", "utf8");
+const dataSource = await readFile("src/app/siteData.ts", "utf8");
+const chromeSource = await readFile("src/app/components/SiteChrome.tsx", "utf8");
+const literalIds = [...pagesSource.matchAll(/id="([a-z0-9-]+)"/g), ...chromeSource.matchAll(/id="([a-z0-9-]+)"/g)].map(match => match[1]);
+const dataIds = [...dataSource.matchAll(/\bid:\s*"([a-z0-9-]+)"/g)].map(match => match[1]);
+const allIds = [...literalIds, ...dataIds];
+const invalidIds = allIds.filter(id => !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(id));
+const duplicateDataIds = dataIds.filter((id, index) => dataIds.indexOf(id) !== index);
+if (invalidIds.length || duplicateDataIds.length) throw new Error(`Błędne ID: ${invalidIds.join(", ")}; duplikaty danych: ${duplicateDataIds.join(", ")}`);
+console.log(`Audyt fragmentów: ${allIds.length} deklaracji ID, poprawny format, brak duplikatów danych.`);
