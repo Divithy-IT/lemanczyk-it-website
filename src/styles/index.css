@@ -51,10 +51,10 @@ a, button, input, textarea, select { outline-offset: 3px; }
 .cards-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1.25rem; }
 .card { border: 1px solid #e2e8f0; border-radius: 1.35rem; background: white; box-shadow: 0 12px 35px #0f172a0a; }
 .card-link { position: relative; min-height: 280px; padding: 1.6rem; display: flex; flex-direction: column; }
-.card h3, .project-card h3 { margin-top: 2rem; font-family: "Sora"; font-size: 1.35rem; line-height: 1.25; font-weight: 750; }
+.card h3, .project-card h3 { margin-top: 2rem; font-family: "Sora", system-ui, sans-serif; font-size: 1.35rem; line-height: 1.25; font-weight: 750; }
 .card p, .project-card p { margin-top: .8rem; color: #64748b; line-height: 1.7; }
 .card a, .project-card a { display: inline-flex; align-items: center; gap: .4rem; margin-top: auto; padding-top: 1.2rem; color: #1d4ed8; font-weight: 750; }
-.card-index { color: #2563eb; font: 800 .8rem "Sora"; }
+.card-index { color: #2563eb; font: 800 .8rem "Sora", system-ui, sans-serif; }
 .portfolio-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1.25rem; }
 .project-card { min-height: 270px; display: flex; flex-direction: column; border-radius: 1.4rem; padding: 1.8rem; background: #f8fafc; border: 1px solid #e2e8f0; }
 .status { color: #1d4ed8 !important; font-size: .75rem; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
@@ -64,19 +64,19 @@ a, button, input, textarea, select { outline-offset: 3px; }
 .process-grid span { display: grid; place-items: center; width: 2.3rem; height: 2.3rem; border-radius: 50%; background: #2563eb; color: white; font-weight: 800; }
 .process-grid strong { color: white; line-height: 1.35; }
 .cta-panel { display: flex; align-items: center; justify-content: space-between; gap: 3rem; padding: clamp(2rem, 5vw, 4rem); border-radius: 2rem; background: linear-gradient(135deg, #1d4ed8, #0f172a); color: white; }
-.cta-panel h2 { margin-top: .8rem; max-width: 750px; font: 750 clamp(1.8rem, 4vw, 3rem)/1.15 "Sora"; letter-spacing: -.03em; }
+.cta-panel h2 { margin-top: .8rem; max-width: 750px; font: 750 clamp(1.8rem, 4vw, 3rem)/1.15 "Sora", system-ui, sans-serif; letter-spacing: -.03em; }
 .cta-panel p { margin-top: 1rem; color: #dbeafe; font-size: 1.1rem; }
 .breadcrumb { display: flex; gap: .6rem; padding-top: 1.5rem; color: #64748b; font-size: .9rem; }.breadcrumb a:hover { color: #1d4ed8; }
 .prose-grid { display: grid; grid-template-columns: 1.3fr .7fr; gap: 4rem; }
-.prose-grid h2, .highlight-box h2, .legal h2 { font: 750 clamp(1.5rem, 3vw, 2.2rem)/1.2 "Sora"; letter-spacing: -.025em; }
+.prose-grid h2, .highlight-box h2, .legal h2 { font: 750 clamp(1.5rem, 3vw, 2.2rem)/1.2 "Sora", system-ui, sans-serif; letter-spacing: -.025em; }
 .prose-grid p, .legal p { margin-top: 1rem; color: #475569; line-height: 1.8; }
 .highlight-box { align-self: start; padding: 2rem; border-radius: 1.4rem; background: #eff6ff; border: 1px solid #bfdbfe; }.highlight-box a { color: #1d4ed8; text-decoration: underline; }
 .about-hero { padding: clamp(2.5rem, 6vw, 5.5rem) 0 clamp(4.5rem, 8vw, 7rem); background: radial-gradient(circle at 15% 30%, #dbeafe 0, transparent 34%), linear-gradient(180deg, #fff, #f8fafc); }
 .about-hero-grid { display: grid; grid-template-columns: minmax(280px, .78fr) minmax(0, 1.22fr); align-items: center; gap: clamp(2.5rem, 6vw, 5.5rem); }
 .about-profile { width: min(100%, 430px); margin: 0 auto; }
 .about-profile figcaption { display: grid; gap: .15rem; width: calc(100% - 2rem); margin: -1.4rem auto 0; position: relative; padding: 1rem 1.25rem; border: 1px solid #bfdbfe; border-radius: 1rem; background: #fffffff2; box-shadow: 0 14px 35px #0f172a1a; }
-.about-profile figcaption strong { font: 750 1.05rem "Sora"; }.about-profile figcaption span { color: #475569; font-size: .9rem; }
-.about-intro-copy h1 { margin-top: 1rem; max-width: 760px; font: 800 clamp(2.35rem, 5vw, 4.5rem)/1.04 "Sora"; letter-spacing: -.05em; text-wrap: balance; }
+.about-profile figcaption strong { font: 750 1.05rem "Sora", system-ui, sans-serif; }.about-profile figcaption span { color: #475569; font-size: .9rem; }
+.about-intro-copy h1 { margin-top: 1rem; max-width: 760px; font: 800 clamp(2.35rem, 5vw, 4.5rem)/1.04 "Sora", system-ui, sans-serif; letter-spacing: -.05em; text-wrap: balance; }
 .about-intro-copy > p:not(.lead) { max-width: 760px; margin-top: 1.25rem; color: #475569; font-size: 1.05rem; line-height: 1.8; }
 .about-highlights { display: flex; flex-wrap: wrap; gap: .7rem 1.1rem; margin-top: 1.6rem; }.about-highlights li { display: flex; align-items: center; gap: .45rem; color: #334155; font-weight: 700; }.about-highlights svg { flex: none; color: #2563eb; }
 .about-actions { display: flex; flex-wrap: wrap; align-items: center; gap: .75rem; margin-top: 2rem; }
@@ -84,8 +84,8 @@ a, button, input, textarea, select { outline-offset: 3px; }
 .about-portrait img { display: block; width: 100%; height: auto; aspect-ratio: 3 / 4; object-fit: cover; }
 .mini-card { display: flex; align-items: center; gap: .75rem; padding: 1.1rem; border: 1px solid #e2e8f0; border-radius: 1rem; background: white; font-weight: 700; }.mini-card svg { color: #2563eb; }
 .service-detail { display: grid; grid-template-columns: 100px 1fr; gap: 2rem; padding: clamp(1.5rem, 4vw, 3rem); border: 1px solid #e2e8f0; border-radius: 1.5rem; }
-.service-number { color: #93c5fd; font: 800 2rem "Sora"; }
-.service-detail h2, .portfolio-detail h2, .tech-grid h2 { font: 750 clamp(1.55rem, 3vw, 2.35rem)/1.2 "Sora"; letter-spacing: -.025em; }
+.service-number { color: #93c5fd; font: 800 2rem "Sora", system-ui, sans-serif; }
+.service-detail h2, .portfolio-detail h2, .tech-grid h2 { font: 750 clamp(1.55rem, 3vw, 2.35rem)/1.2 "Sora", system-ui, sans-serif; letter-spacing: -.025em; }
 .service-detail h3, .project-copy h3 { margin-top: 1.5rem; font-weight: 800; color: #334155; }
 .lead-small { margin-top: .7rem; max-width: 800px; color: #475569; font-size: 1.1rem; line-height: 1.7; }
 .service-detail ul { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .65rem 1.5rem; margin-top: .9rem; color: #475569; }.service-detail li { display: flex; gap: .6rem; }.service-detail li svg { flex: none; margin-top: .2rem; color: #2563eb; }
