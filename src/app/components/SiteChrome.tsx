@@ -29,7 +29,7 @@ export function Header() {
     <header ref={headerRef} className="site-header sticky top-0 z-40 border-b border-slate-200/80 bg-white/95 backdrop-blur">
       <a className="skip-link" href="#main-content">Przejdź do treści</a>
       <div className="site-container flex h-20 items-center justify-between gap-4">
-        <NavLink to="/" className="flex items-center gap-3 font-['Sora'] text-xl font-bold" aria-label="Lemanczyk-IT — strona główna">
+        <NavLink to="/" className="flex items-center gap-3 font-['Sora',system-ui,sans-serif] text-xl font-bold" aria-label="Lemanczyk-IT — strona główna">
           <span className="grid h-10 w-10 place-items-center rounded-xl bg-blue-600 text-white">&lt;/&gt;</span>
           <span>Lemanczyk<span className="text-blue-600">-IT</span></span>
         </NavLink>
@@ -56,7 +56,7 @@ export function Footer() {
     <footer className="border-t border-slate-800 bg-slate-950 py-14 text-slate-300">
       <div className="site-container grid gap-10 lg:grid-cols-[1.4fr_1fr_1fr]">
         <div>
-          <p className="font-['Sora'] text-2xl font-bold text-white">Lemanczyk<span className="text-blue-400">-IT</span></p>
+          <p className="font-['Sora',system-ui,sans-serif] text-2xl font-bold text-white">Lemanczyk<span className="text-blue-400">-IT</span></p>
           <p className="mt-4 max-w-md leading-relaxed">Dedykowane aplikacje webowe, automatyzacje, integracje API oraz rozwiązania Linux i VPS dla firm.</p>
           <p className="mt-4 text-sm">{company.name}<br />{company.address}<br />NIP: {company.nip}</p>
         </div>
