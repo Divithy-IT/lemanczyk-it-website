@@ -20,6 +20,22 @@ for (const viewport of [{ width: 375, height: 812 }, { width: 1366, height: 800 
   });
 }
 
+test("zaktualizowana oferta i własny projekt są czytelne na mobile", async ({ page }) => {
+  await page.setViewportSize({ width: 375, height: 812 });
+
+  await page.goto("/uslugi#linux-vps");
+  await expect(page.getByRole("heading", { name: "Linux, VPS i utrzymanie" })).toBeVisible();
+  await expect(page.getByText("backup, restore, retencja i testy integralności", { exact: true })).toBeVisible();
+
+  await page.goto("/portfolio#lemanczyk-platform");
+  await expect(page.getByRole("heading", { name: "Lemanczyk Platform" })).toBeVisible();
+  await expect(page.getByText(/Własna realizacja techniczna rozwijana na prywatnej infrastrukturze/)).toBeVisible();
+
+  await page.goto("/technologie");
+  await expect(page.getByRole("heading", { name: "Bezpieczeństwo i utrzymanie" })).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBeTruthy();
+});
+
 test("/o-mnie zawiera portret połączony z głównym opisem w górnej części", async ({ page }) => {
   await page.setViewportSize({ width: 1366, height: 900 }); await page.goto("/o-mnie"); const intro = page.getByTestId("about-intro"); const image = intro.locator(".about-portrait img"); await expect(image).toBeVisible();
   await expect(image).toHaveAttribute("alt", "Michał Lemanczyk — programista Full Stack i właściciel Lemanczyk-IT"); await expect(image).toHaveAttribute("width", "516"); await expect(image).toHaveAttribute("height", "688");

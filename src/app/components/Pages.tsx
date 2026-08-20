@@ -9,7 +9,7 @@ const pageMeta = {
   about: ["Programista Full Stack z doświadczeniem od 2019 roku | Lemanczyk-IT", "Poznaj Michała Lemanczyka — programistę rozwijającego aplikacje, sklepy internetowe, automatyzacje, API oraz rozwiązania Linux i VPS."],
   services: ["Usługi programistyczne – aplikacje, API, automatyzacje i Linux | Lemanczyk-IT", "Aplikacje webowe, panele administracyjne, automatyzacje, integracje API, rozwój e-commerce oraz wdrożenia na Linux i VPS."],
   portfolio: ["Portfolio programisty – aplikacje webowe i automatyzacje | Lemanczyk-IT", "Zobacz projekty: panel zarządzania serwerami gier, automatyzację materiałów wideo, LekkaForma i stronę Lemanczyk-IT."],
-  technologies: ["Technologie – Python, JavaScript, SQL, Linux i API | Lemanczyk-IT", "Technologie wykorzystywane w pracy i projektach: Python, JavaScript, FastAPI, SQL, Linux, nginx, API, GitHub Actions i narzędzia serwerowe."],
+  technologies: ["Technologie – Python, JavaScript, SQL, Linux i API | Lemanczyk-IT", "Praktyczny warsztat: Python, JavaScript, FastAPI, SQL, Linux, nginx, systemd, bezpieczne API, CI/CD, monitoring i narzędzia serwerowe."],
   contact: ["Kontakt i wycena usług programistycznych | Lemanczyk-IT", "Opisz aplikację, automatyzację, integrację API lub problem z serwerem. Wstępna rozmowa i orientacyjna wycena są bezpłatne."],
   privacy: ["Polityka prywatności | Lemanczyk-IT", "Informacje o przetwarzaniu danych z formularza kontaktowego, logach technicznych i prywatności w serwisie Lemanczyk-IT."],
 } as const;
@@ -85,11 +85,12 @@ export function TechnologiesPage() {
   const groups = [
     ["Języki", ["JavaScript ES6+", "Python", "HTML5", "CSS3", "SQL", "Bash", "SourcePawn"]],
     ["Frontend", ["JavaScript", "responsywne interfejsy", "Fetch API / AJAX", "semantyczny HTML", "CSS", "dashboardy", "panele użytkowników"]],
-    ["Backend", ["Python", "FastAPI", "REST API", "autoryzacja i role", "integracje API", "automatyzacja", "przetwarzanie danych"]],
+    ["Backend i API", ["Python", "FastAPI", "REST i HTTP/JSON", "OpenAPI", "Unix sockets", "integracje backendowe", "przetwarzanie danych"]],
     ["Bazy danych", ["MariaDB", "MySQL", "SQLite", "SQL"]],
-    ["Linux i infrastruktura", ["Ubuntu Server", "Linux", "nginx", "systemd", "SSH", "Git", "GitHub", "GitHub Actions", "CI/CD", "TLS/HTTPS", "DNS", "monitoring", "backup i restore", "watchdog", "logi", "cron"]],
-    ["Integracje i automatyzacja", ["REST API", "YouTube Data API", "Steam", "RCON", "JSON", "przetwarzanie plików", "harmonogramy"]],
-    ["Serwery gier", ["SourceMod", "SourcePawn", "SteamCMD", "Workshop", "RCON", "Minecraft", "Left 4 Dead 2"]],
+    ["Linux i wdrożenia", ["Ubuntu Server", "nginx i reverse proxy", "systemd", "SSH", "domeny i DNS", "HTTPS/TLS", "Git i GitHub", "GitHub Actions", "CI/CD", "automatyczne wdrożenia"]],
+    ["Bezpieczeństwo i utrzymanie", ["auth i RBAC", "CSRF", "least privilege", "sudoers i allowlisty", "backup, restore i retencja", "testy integralności", "monitoring i health-checki", "watchdogi i diagnostyka"]],
+    ["Integracje i architektura", ["YouTube Data API", "Steam", "RCON", "JSON", "przetwarzanie plików", "harmonogramy", "separacja usług i repozytoriów"]],
+    ["Serwery gier", ["CS 1.6 i ReHLDS", "L4D2 i SourceMod", "SourcePawn", "Minecraft i Paper", "SteamCMD", "Workshop", "RCON"]],
   ];
   return <main id="main-content"><Seo title={pageMeta.technologies[0]} description={pageMeta.technologies[1]} path="/technologie" /><Breadcrumb current="Technologie" /><PageHero eyebrow="Warsztat" title="Technologie, z których korzystam w pracy i projektach" lead="Dobieram narzędzia do problemu i istniejącego środowiska. Lista pokazuje praktyczny warsztat, nie deklarację eksperckiej specjalizacji w każdym elemencie." />
     <section className="section pt-0"><div className="site-container tech-grid">{groups.map(([name, items]) => <section className="card p-6 sm:p-8" key={name as string}><h2>{name}</h2><div className="tags mt-5">{(items as string[]).map(x => <span key={x}>{x}</span>)}</div></section>)}</div></section><FinalCta /></main>;

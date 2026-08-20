@@ -30,7 +30,7 @@ export const services = [
     id: "panele-administracyjne",
     title: "Panele administracyjne",
     lead: "Porządkuję codzienne operacje w jednym bezpiecznym miejscu, z właściwym dostępem dla każdej roli.",
-    items: ["dashboardy i statystyki", "użytkownicy, role i uprawnienia", "monitoring, raporty i historia działań", "integracje z backendem i bezpieczne logowanie"],
+    items: ["dashboardy, statystyki i raporty", "użytkownicy, role i uprawnienia (RBAC)", "bezpieczne logowanie i ochrona operacji", "integracje z backendem, monitoring i historia działań"],
   },
   {
     id: "automatyzacja",
@@ -41,14 +41,14 @@ export const services = [
   {
     id: "integracje-api",
     title: "Integracje API",
-    lead: "Łączę aplikacje i zewnętrzne usługi, dbając o autoryzację, limity, błędy i spójność danych.",
-    items: ["REST API i JSON", "YouTube Data API", "Steam i dane serwerów gier", "synchronizacja danych i obsługa limitów"],
+    lead: "Projektuję API i łączę aplikacje z innymi usługami, dbając o autoryzację, błędy i spójność danych.",
+    items: ["REST, HTTP/JSON i dokumentacja OpenAPI", "lekkie agenty usług komunikujące się przez Unix socket", "YouTube, Steam i dane serwerów gier", "synchronizacja danych, limity i diagnostyka integracji"],
   },
   {
     id: "linux-vps",
     title: "Linux, VPS i utrzymanie",
     lead: "Przygotowuję stabilne środowisko dla aplikacji i pomagam bezpiecznie wdrażać oraz utrzymywać usługi.",
-    items: ["Ubuntu Server, nginx, systemd i SSH", "DNS, HTTPS/TLS i bazy danych", "GitHub Actions i CI/CD", "backup, restore, monitoring, watchdog i analiza logów"],
+    items: ["Ubuntu Server, systemd, nginx i reverse proxy", "domeny, DNS oraz HTTPS/TLS", "Git, GitHub, CI/CD i automatyzacja wdrożeń", "backup, restore, retencja i testy integralności", "monitoring, health-checki, watchdogi i diagnostyka"],
   },
   {
     id: "ecommerce",
@@ -59,8 +59,8 @@ export const services = [
   {
     id: "serwery-gier",
     title: "Serwery gier i narzędzia dedykowane",
-    lead: "Niszowy przykład systemów szytych na miarę: panel, automatyzacja i infrastruktura współpracują jako jedna całość.",
-    items: ["panele zarządzania i monitoring", "RCON, SteamCMD i Workshop", "SourceMod, SourcePawn i statystyki", "backupy, aktualizacje i kontrola usług systemd"],
+    lead: "Własny projekt pokazuje, jak panel, automatyzacja i infrastruktura mogą współpracować jako jeden bezpieczny system.",
+    items: ["CS 1.6 / ReHLDS, L4D2 / SourceMod i Minecraft / Paper", "publiczne statusy i panele administracyjne", "izolowane agenty dla każdej gry i kontrola usług systemd", "monitoring, aktualizacje, backup i sprawdzony restore"],
   },
 ] as const;
 
@@ -68,12 +68,13 @@ export const projects = [
   {
     id: "lemanczyk-platform",
     title: "Lemanczyk Platform",
-    status: "Projekt rozwijany",
+    status: "Projekt własny · rozwijany",
     problem: "Bezpieczne zarządzanie kilkoma serwerami gier, użytkownikami i operacjami z jednego miejsca.",
-    solution: "Dedykowany panel dla Minecraft i Left 4 Dead 2 z rolami Admin i Player, statystykami, rankingami, kampaniami Workshop, monitoringiem, backupami i kontrolowanym dostępem do RCON.",
-    contribution: "Projekt, implementacja aplikacji i paneli, integracje, własne pluginy SourceMod, automatyzacja usług, CI, wdrożenie i dokumentacja.",
-    tech: ["Python", "FastAPI", "JavaScript", "HTML", "CSS", "SQLite", "SourcePawn", "SourceMod", "SteamCMD", "RCON", "nginx", "systemd", "Bash", "GitHub Actions"],
-    result: "Spójne narzędzie upraszcza zarządzanie usługami, kampaniami i dostępem oraz pozwala wcześniej zauważać problemy dzięki health checkom, logom i watchdogowi.",
+    solution: "Panel łączy publiczne statusy i widoki administracyjne dla CS 1.6, Left 4 Dead 2 oraz Minecrafta. Oddzielne agenty każdej gry udostępniają kontrolowane API do sterowania, statystyk, map, kampanii, backupów i monitoringu.",
+    contribution: "Architektura i podział odpowiedzialności między repozytoriami i usługami, frontend, API oraz kontrakty OpenAPI. Także auth, RBAC, CSRF, least privilege, allowlisty sudoers, CI/CD, wdrożenia i testy odtwarzania backupów.",
+    tech: ["Python", "FastAPI", "JavaScript", "SQLite", "OpenAPI", "Unix sockets", "nginx", "systemd", "GitHub Actions", "Bash", "ReHLDS", "SourceMod", "Paper"],
+    result: "Jeden panel zapewnia czytelny podgląd i kontrolę, a separacja usług, health-checki, watchdogi oraz testowany restore ograniczają wpływ awarii i ułatwiają bezpieczne utrzymanie.",
+    note: "Własna realizacja techniczna rozwijana na prywatnej infrastrukturze — nie jest wdrożeniem klienta.",
     live: "https://gry.lemanczyk-it.pl",
   },
   {
