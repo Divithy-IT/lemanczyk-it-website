@@ -8,7 +8,7 @@ const pages = {
   "portfolio": ["Portfolio programisty – aplikacje webowe i automatyzacje | Lemanczyk-IT", "Zobacz projekty: panel zarządzania serwerami gier, automatyzację materiałów wideo, LekkaForma i stronę Lemanczyk-IT.", "Portfolio aplikacji i automatyzacji"],
   "technologie": ["Technologie – Python, JavaScript, SQL, Linux i API | Lemanczyk-IT", "Technologie wykorzystywane w pracy i projektach: Python, JavaScript, FastAPI, SQL, Linux, nginx, API i GitHub Actions.", "Technologie używane w pracy i projektach"],
   "kontakt": ["Kontakt i wycena usług programistycznych | Lemanczyk-IT", "Opisz aplikację, automatyzację, integrację API lub problem z serwerem. Wstępna rozmowa i orientacyjna wycena są bezpłatne.", "Kontakt i wycena projektu"],
-  "polityka-prywatnosci": ["Polityka prywatności | Lemanczyk-IT", "Informacje o przetwarzaniu danych z formularza kontaktowego, logach technicznych i prywatności w serwisie Lemanczyk-IT.", "Polityka prywatności"],
+  "polityka-prywatnosci": ["Polityka prywatności | Lemanczyk-IT", "Informacje o danych z formularza kontaktowego, serwerów gier, statystyk graczy, logów technicznych i narzędzi wspierających rozwój Lemanczyk-IT.", "Polityka prywatności"],
   "dane-firmy": ["Dane firmy | Lemanczyk-IT", "Dane rejestrowe działalności MICHAŁ LEMANCZYK IT.", "Dane firmy Lemanczyk-IT"],
   "404": ["Nie znaleziono strony | Lemanczyk-IT", "Podany adres nie istnieje. Wróć na stronę główną Lemanczyk-IT.", "Ta strona nie istnieje"],
 };

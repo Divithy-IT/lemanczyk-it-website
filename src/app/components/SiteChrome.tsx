@@ -76,7 +76,10 @@ export function Footer() {
           </div>
         </div>
       </div>
-      <div className="site-container mt-10 border-t border-slate-800 pt-6 text-sm">© {new Date().getFullYear()} Lemanczyk-IT. Wszelkie prawa zastrzeżone.</div>
+      <div className="site-container mt-10 border-t border-slate-800 pt-6 text-sm">
+        <p>© {new Date().getFullYear()} Lemanczyk-IT. Wszelkie prawa zastrzeżone.</p>
+        <p className="mt-2 text-slate-400">Serwis jest rozwijany z wykorzystaniem narzędzi AI wspierających programowanie i redakcję. Publikowane treści oraz zmiany są weryfikowane i zatwierdzane przez autora.</p>
+      </div>
     </footer>
   );
 }
