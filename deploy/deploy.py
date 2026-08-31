@@ -20,6 +20,9 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import time
+import urllib.error
+import urllib.request
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -32,6 +35,8 @@ HELPERS = Path("/usr/local/lib/lemanczyk-it-website/bin")
 MANIFEST = ".lemanczyk-release.json"
 NGINX = "nginx.service"
 PHP_FPM = "php8.3-fpm.service"
+SMOKE_ATTEMPTS = 3
+SMOKE_DELAY = 2.0
 COMMIT_PATTERN = re.compile(r"\A[0-9a-f]{7,40}\Z")
 DATE_PATTERN = re.compile(r"\A[0-9]{8}\Z")
 
@@ -189,6 +194,46 @@ def install(entry: Entry, root: Path) -> None:
         temporary_path.unlink(missing_ok=True)
 
 
+def canonical_urls(dist: Path) -> list[str]:
+    """Addresses the built site declares as canonical.
+
+    Reading them from the generated sitemap keeps the check honest: it verifies
+    exactly what the site publishes, and a page added later is covered without
+    anyone remembering to update a list here.
+
+    The canonical form carries no trailing slash. Asking for one is answered with
+    a redirect to the canonical address, which is correct and must not be read as
+    a failure.
+    """
+    sitemap = dist / "sitemap.xml"
+    if not sitemap.is_file():
+        return []
+    return re.findall(r"<loc>\s*(https://[^<\s]+)\s*</loc>",
+                      sitemap.read_text(encoding="utf-8"))
+
+
+def smoke(urls: list[str]) -> list[str]:
+    """Fetch every canonical address; return the ones that did not answer 200."""
+    failures = []
+    for url in urls:
+        last = "brak proby"
+        for _ in range(SMOKE_ATTEMPTS):
+            try:
+                with urllib.request.urlopen(url, timeout=10) as response:
+                    if response.status == 200:
+                        last = ""
+                        break
+                    last = f"HTTP {response.status}"
+            except urllib.error.HTTPError as exc:
+                last = f"HTTP {exc.code}"
+            except (urllib.error.URLError, OSError) as exc:
+                last = str(exc)
+            time.sleep(SMOKE_DELAY)
+        if last:
+            failures.append(f"{url}: {last}")
+    return failures
+
+
 def symlink_target(root: Path) -> str | None:
     link = rooted(CURRENT, root)
     if not link.is_symlink():
@@ -240,6 +285,7 @@ def main() -> int:
     parser.add_argument("--root", type=Path, default=Path("/"), help=argparse.SUPPRESS)
     parser.add_argument("--dist", type=Path, default=DIST, help=argparse.SUPPRESS)
     parser.add_argument("--no-reload", action="store_true", help=argparse.SUPPRESS)
+    parser.add_argument("--no-smoke", action="store_true", help=argparse.SUPPRESS)
     args = parser.parse_args()
     root = args.root.resolve()
 
@@ -303,13 +349,34 @@ def main() -> int:
         subprocess.run(["nginx", "-t"], check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         subprocess.run(["systemctl", "reload", NGINX], check=True)
         subprocess.run(["systemctl", "reload", PHP_FPM], check=True)
+    # Verify what a visitor actually gets, and undo the switch if it is broken.
+    # A green workflow is not evidence that the page loads.
+    checked: list[str] = []
+    if root == Path("/") and not args.no_smoke:
+        checked = canonical_urls(dist)
+        failures = smoke(checked)
+        if failures:
+            if previous and switching:
+                switch_symlink(Path(previous), root)
+                if not args.no_reload:
+                    subprocess.run(["systemctl", "reload", NGINX], check=False)
+                    subprocess.run(["systemctl", "reload", PHP_FPM], check=False)
+                restored = Path(previous).name
+            else:
+                restored = "brak poprzedniego wydania"
+            raise RuntimeError(
+                f"smoke check failed, rolled back to {restored}: " + "; ".join(failures)
+            )
+
+    # Older releases become disposable only once the new one is known to serve;
+    # a rollback must never be short of somewhere to go back to.
     for path in retire:
         shutil.rmtree(rooted(path, root))
     print(
         f"DEPLOY_OK\tchanged={len(changed_items)}\treleased={release.name}"
         f"\tprevious={Path(previous).name if previous else 'none'}"
         f"\tsymlink={'switched' if switching else 'unchanged'}\tretired={len(retire)}"
-        f"\treloads={reloads}\tsecrets_touched=0"
+        f"\treloads={reloads}\tsmoke={len(checked)}\tsecrets_touched=0"
     )
     return 0
 

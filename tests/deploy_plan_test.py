@@ -153,4 +153,34 @@ with tempfile.TemporaryDirectory(prefix="website-retention.") as temporary:
     existing_release = deploy.RELEASES / names[-1]
     assert len(deploy.prunable(10, existing_release, str(served), root)) == 2, "no double count"
 
+# The post-switch check reads its addresses from the built sitemap, so the
+# canonical form (no trailing slash) is what gets verified. A trailing slash is
+# answered with a redirect, which is correct and must never be treated as a
+# failure - that mistake once caused a good release to be rolled back.
+with tempfile.TemporaryDirectory(prefix="website-smoke.") as temporary:
+    dist = Path(temporary)
+    assert deploy.canonical_urls(dist) == [], "a missing sitemap yields no checks"
+    (dist / "sitemap.xml").write_text(
+        '<?xml version="1.0" encoding="UTF-8"?>\n'
+        '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
+        "  <url><loc>https://lemanczyk-it.pl/</loc></url>\n"
+        "  <url><loc>\n    https://lemanczyk-it.pl/o-mnie\n  </loc></url>\n"
+        "  <url><loc>https://lemanczyk-it.pl/dane-firmy</loc></url>\n"
+        "</urlset>\n",
+        encoding="utf-8",
+    )
+    urls = deploy.canonical_urls(dist)
+    assert urls == [
+        "https://lemanczyk-it.pl/",
+        "https://lemanczyk-it.pl/o-mnie",
+        "https://lemanczyk-it.pl/dane-firmy",
+    ], urls
+    assert not any(url.endswith("/") for url in urls[1:]), "canonical pages carry no slash"
+
+# The real sitemap must stay parseable by the same check, otherwise a deployment
+# would verify nothing and report success.
+shipped = deploy.canonical_urls(ROOT)
+assert len(shipped) >= 8, f"the shipped sitemap must list every page: {shipped}"
+assert "https://lemanczyk-it.pl/o-mnie" in shipped, shipped
+
 print("website deploy plan check passed")

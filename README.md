@@ -95,6 +95,10 @@ sudo ./deploy/deploy.py --apply
 
 Deployer nie dotyka `/etc/`, więc sekrety w `/etc/lemanczyk-it/contact-mailer.env` pozostają nienaruszone; `api/contact-config.php` w repozytorium tylko je wczytuje. Nie dotyka też `/var/www/html`, `/var/www/cs16-fastdl` ani niczego należącego do pozostałych repozytoriów.
 
+Po przełączeniu symlinka deployer sam sprawdza stronę: pobiera każdy adres kanoniczny zadeklarowany w `sitemap.xml` zbudowanego wydania i wymaga `200`. Jeśli którykolwiek nie odpowiada, symlink wraca na poprzednie wydanie, nginx i PHP-FPM są przeładowane, a wdrożenie kończy się błędem. Zielony workflow nie jest dowodem, że strona się otwiera — dowodem jest ten test.
+
+Adresy kanoniczne nie mają końcowego ukośnika (`/o-mnie`, nie `/o-mnie/`). Wersja z ukośnikiem odpowiada przekierowaniem na kanoniczną i **to jest poprawne zachowanie**, a nie awaria.
+
 Retencja jest automatyczna: wrapper zawsze wdraża z `--keep 10`, więc katalog wydań utrzymuje dziesięć najnowszych. Wydanie aktualnie serwowane oraz to, z którego właśnie schodzimy, nigdy nie są usuwane — cel natychmiastowego rollbacku zawsze przetrwa. Ręcznie limit ustawia się flagą, a `--keep 0` wyłącza retencję zupełnie.
 
 Rollback to przełączenie symlinka na poprzednie wydanie, `nginx -t` i reload:
