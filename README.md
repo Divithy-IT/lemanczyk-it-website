@@ -79,9 +79,37 @@ Zestaw obejmuje build, kontrolę SEO i plików technicznych, regresje UI, lint P
 
 Produkcja korzysta z atomowych wydań i symlinkowanego katalogu bieżącej wersji. Nowy build jest weryfikowany przed przełączeniem, a poprzednie wydanie pozostaje dostępne do rollbacku. Szczegóły infrastruktury i sekrety nie są częścią repozytorium.
 
+Push na `main` z zielonym CI uruchamia workflow `Deploy` na self-hosted runnerze na VPS-ie. Runner buduje stronę na swoim koncie, a `deploy/deploy.py` instaluje gotowe `dist/` jako nowe wydanie i przełącza symlink. Wdrożeniem steruje wrapper `/usr/local/lib/lemanczyk-it-website/bin/website-deploy`, który przyjmuje wyłącznie czysty checkout o `HEAD` należącym do `origin/main`.
+
+Wydanie nazywa się `RRRRMMDD-<7 znaków sha>` i jest wyznaczane z commita, więc dwukrotne wdrożenie tego samego commita nie tworzy drugiego katalogu i kończy się `changed=0`.
+
+Ręcznie, z checkoutu na serwerze:
+
+```bash
+npm ci && npm run build
+sudo ./deploy/deploy.py
+sudo ./deploy/deploy.py --apply
+```
+
+`npm` nigdy nie jest uruchamiane przez roota — skrypty instalacyjne pakietów wykonują dowolny kod, więc build należy do konta nieuprzywilejowanego, a root dostaje gotowe `dist/`.
+
+Deployer nie dotyka `/etc/`, więc sekrety w `/etc/lemanczyk-it/contact-mailer.env` pozostają nienaruszone; `api/contact-config.php` w repozytorium tylko je wczytuje. Nie dotyka też `/var/www/html`, `/var/www/cs16-fastdl` ani niczego należącego do pozostałych repozytoriów.
+
+Stare wydania nie są usuwane automatycznie. Retencję uruchamia się świadomie: `sudo ./deploy/deploy.py --keep 5 --apply` zostawia pięć najnowszych i nigdy nie usuwa wydania aktualnie serwowanego.
+
+Rollback to przełączenie symlinka na poprzednie wydanie, `nginx -t` i reload:
+
+```bash
+ls -la /var/www/lemanczyk-it-current
+sudo ln -sfn /var/www/lemanczyk-it-releases/<poprzednie> /var/www/lemanczyk-it-current
+sudo nginx -t && sudo systemctl reload nginx php8.3-fpm
+```
+
+Build wykonuje `cp index.source.html index.html`, więc oba pliki muszą być zgodne w repozytorium. Gdyby się rozjechały, build zabrudziłby drzewo, a wrapper odmówi wdrożenia — to celowe, bo publikowanie niespójnego repozytorium byłoby gorsze.
+
 ## GitHub Actions
 
-Workflow CI uruchamia instalację zależności, build, testy, kontrolę składni, podstawowy secret scan oraz `git diff --check`. CI nie wykonuje automatycznego wdrożenia produkcyjnego.
+Workflow CI uruchamia instalację zależności, build, testy, kontrolę składni, walidację planu wdrożenia, podstawowy secret scan oraz `git diff --check`. Samo CI nie wdraża; wdrożenie wykonuje osobny workflow `Deploy`, uruchamiany dopiero po zielonym CI na `main`.
 
 ## Lighthouse
 

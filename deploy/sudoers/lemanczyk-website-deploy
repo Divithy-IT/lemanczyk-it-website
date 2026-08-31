@@ -1,0 +1,9 @@
+# Pozwala runnerowi GitHub Actions wdrozyc strone lemanczyk-it.pl i nic wiecej.
+#
+# Plik instaluje sie recznie. Deployer strony celowo go nie nadpisuje:
+# /etc/ jest na liscie forbidden_prefixes, bo warstwa sudoers nalezy do
+# Divithy-IT/lemanczyk-infra.
+#
+# Pusty argument "" oznacza wywolanie bez argumentow. Dzieki temu runner nie
+# moze podac wlasnej sciezki checkoutu ani dopisac innych parametrow.
+github-runner ALL=(root) NOPASSWD: /usr/local/lib/lemanczyk-it-website/bin/website-deploy "", /usr/local/lib/lemanczyk-it-website/bin/website-deploy --plan

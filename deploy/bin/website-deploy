@@ -1,0 +1,89 @@
+#!/bin/bash
+# Root entry point for the automated lemanczyk-it.pl deployment.
+#
+# Deploys only a clean checkout whose HEAD is contained in origin/main, so the
+# code reaching production is exactly what was merged and validated by CI.
+#
+# The checkout path is fixed on purpose. Sudoers grants this wrapper with no
+# arguments, and a caller-supplied path would turn it into a root shell.
+#
+# Git runs as the runner account, never as root: a repository-local .git/config
+# can execute commands through core.sshCommand or an alias, so root must not
+# read configuration from a tree the runner can write. The release identity is
+# resolved here, as the runner, and handed to the deployer through the
+# environment; the deployer validates it before it becomes a path.
+#
+# npm is never run from here. Package install scripts execute arbitrary code and
+# this wrapper is root; building belongs to the runner or to the operator.
+set -euo pipefail
+
+RUNNER_USER=github-runner
+CHECKOUT=/opt/actions-runner-website/_work/lemanczyk-it-website/lemanczyk-it-website
+DEPLOY="$CHECKOUT/deploy/deploy.py"
+
+mode=${1:-apply}
+case "$mode" in
+    apply | --plan) ;;
+    *)
+        echo "uzycie: website-deploy [--plan]" >&2
+        exit 64
+        ;;
+esac
+
+if [ "$(id -u)" -ne 0 ]; then
+    echo "website-deploy wymaga roota" >&2
+    exit 77
+fi
+
+if [ ! -f "$DEPLOY" ]; then
+    echo "brak deployera: $DEPLOY" >&2
+    exit 66
+fi
+
+owner=$(stat -c %U "$CHECKOUT")
+if [ "$owner" != "$RUNNER_USER" ]; then
+    echo "checkout nalezy do $owner, oczekiwano $RUNNER_USER" >&2
+    exit 65
+fi
+
+as_runner() {
+    runuser -u "$RUNNER_USER" -- git -C "$CHECKOUT" "$@"
+}
+
+if ! as_runner rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+    echo "checkout nie jest repozytorium Git: $CHECKOUT" >&2
+    exit 65
+fi
+
+# Build artefacts are gitignored, so a build leaves the tree clean. If it does
+# not, index.html and index.source.html have drifted apart in the repository and
+# the deployment must stop rather than publish an inconsistent tree.
+if [ -n "$(as_runner status --porcelain)" ]; then
+    echo "checkout ma niezacommitowane zmiany - odmawiam wdrozenia" >&2
+    as_runner status --porcelain >&2
+    exit 65
+fi
+
+as_runner fetch --quiet origin main
+head=$(as_runner rev-parse HEAD)
+if ! as_runner merge-base --is-ancestor "$head" FETCH_HEAD; then
+    echo "HEAD $head nie znajduje sie na origin/main - odmawiam wdrozenia" >&2
+    exit 65
+fi
+
+date=$(as_runner log -1 --format=%cd --date=format:%Y%m%d)
+
+if [ ! -f "$CHECKOUT/dist/index.html" ]; then
+    echo "brak zbudowanego dist/ - uruchom 'npm ci && npm run build' przed wdrozeniem" >&2
+    exit 66
+fi
+
+echo "website-deploy: commit $head potwierdzony na origin/main"
+
+export LEMANCZYK_RELEASE_COMMIT="$head"
+export LEMANCZYK_RELEASE_DATE="$date"
+
+if [ "$mode" = "--plan" ]; then
+    exec /usr/bin/python3 "$DEPLOY"
+fi
+exec /usr/bin/python3 "$DEPLOY" --apply

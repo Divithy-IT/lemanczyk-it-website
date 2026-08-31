@@ -1,0 +1,57 @@
+---
+name: Deploy
+
+# Wdrozenie rusza dopiero po zielonym CI na galezi main. Push, ktorego CI nie
+# przeszlo, nie dotyka produkcji. workflow_dispatch pozwala powtorzyc wdrozenie
+# bez ponownego uruchamiania CI.
+"on":
+  workflow_run:
+    workflows: ["Website CI"]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    if: >-
+      github.event_name == 'workflow_dispatch'
+      || (github.event.workflow_run.conclusion == 'success'
+      && github.event.workflow_run.event == 'push')
+    runs-on: [self-hosted, linux, lemanczyk-vps]
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          # Wdrazamy dokladnie ten commit, ktory przeszedl CI.
+          ref: >-
+            ${{ github.event_name == 'workflow_dispatch' && github.sha
+            || github.event.workflow_run.head_sha }}
+          # Wrapper weryfikuje przynaleznosc HEAD do origin/main i potrzebuje
+          # zarowno historii, jak i zachowanych danych uwierzytelniajacych.
+          fetch-depth: 0
+          persist-credentials: true
+      # Build wykonuje konto runnera, nie root: npm uruchamia skrypty
+      # instalacyjne pakietow. Uzywamy node zainstalowanego na hoscie - tego
+      # samego, ktorym strona byla budowana dotad.
+      - name: Build
+        run: |
+          node --version
+          npm --version
+          npm ci
+          npm run build
+          test -f dist/index.html
+      - name: Deployment plan
+        run: sudo /usr/local/lib/lemanczyk-it-website/bin/website-deploy --plan
+      - name: Apply
+        run: sudo /usr/local/lib/lemanczyk-it-website/bin/website-deploy
+      - name: Served release
+        run: |
+          readlink -f /var/www/lemanczyk-it-current
+          curl -sS -o /dev/null -w 'https://lemanczyk-it.pl %{http_code}\n' https://lemanczyk-it.pl/

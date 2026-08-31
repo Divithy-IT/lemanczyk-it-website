@@ -1,0 +1,30 @@
+{
+  "version": 1,
+  "exact": [
+    "/var/www/lemanczyk-it-current"
+  ],
+  "prefixes": [
+    "/usr/local/lib/lemanczyk-it-website/",
+    "/var/www/lemanczyk-it-releases/"
+  ],
+  "forbidden_prefixes": [
+    "/etc/",
+    "/home/",
+    "/opt/",
+    "/srv/",
+    "/usr/local/lib/lemanczyk-cs16-zombie/",
+    "/usr/local/lib/lemanczyk-infra/",
+    "/usr/local/lib/lemanczyk-l4d2/",
+    "/usr/local/lib/lemanczyk-minecraft/",
+    "/usr/local/lib/lemanczyk-platform/",
+    "/var/www/cs16-fastdl/",
+    "/var/www/html-wordpress-backup/",
+    "/var/www/html/",
+    "/var/www/letsencrypt/",
+    "/var/www/mc-landing/"
+  ],
+  "forbidden_exact": [
+    "/etc/lemanczyk-it/contact-mailer.env",
+    "/etc/nginx/sites-available/default"
+  ]
+}

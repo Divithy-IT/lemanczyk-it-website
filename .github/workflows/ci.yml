@@ -21,6 +21,10 @@ jobs:
         run: npm ci
       - name: Build and validate website
         run: npm test
+      - name: Validate deployment plan
+        run: |
+          bash -n deploy/bin/website-deploy
+          python3 tests/deploy_plan_test.py
       - name: Install browser for responsive tests
         run: npx playwright install --with-deps chromium
       - name: Run responsive browser tests
