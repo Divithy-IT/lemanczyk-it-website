@@ -126,4 +126,31 @@ with tempfile.TemporaryDirectory(prefix="website-deploy-plan.") as temporary:
     assert result.returncode != 0, "a missing build must not produce a plan"
     assert "missing build" in result.stderr, result.stderr
 
+# Retention deletes directories, so its arithmetic and its exclusions are worth
+# pinning down: the served release and the one being deployed must survive.
+with tempfile.TemporaryDirectory(prefix="website-retention.") as temporary:
+    root = Path(temporary)
+    releases = root / "var/www/lemanczyk-it-releases"
+    releases.mkdir(parents=True)
+    for index in range(1, 13):
+        (releases / f"2026010{index:02d}-aaaaaaa").mkdir()
+    names = sorted(path.name for path in releases.iterdir())
+    served = deploy.RELEASES / names[4]
+    new_release = deploy.RELEASES / "20260201-bbbbbbb"
+
+    retire = deploy.prunable(10, new_release, str(served), root)
+    retired = [path.name for path in retire]
+    assert len(retire) == 3, f"12 existing plus 1 new, keeping 10, retires 3: {retired}"
+    assert retired == names[:3], retired
+    assert served.name not in retired, "the served release must never be retired"
+    assert new_release.name not in retired, "the release being deployed must survive"
+    assert 12 - len(retire) + 1 == 10, "the deployed release counts towards the limit"
+
+    assert deploy.prunable(0, new_release, str(served), root) == [], "keep=0 disables retention"
+    assert deploy.prunable(50, new_release, str(served), root) == [], "nothing to retire yet"
+
+    # A redeployment of an existing release must not count itself twice.
+    existing_release = deploy.RELEASES / names[-1]
+    assert len(deploy.prunable(10, existing_release, str(served), root)) == 2, "no double count"
+
 print("website deploy plan check passed")

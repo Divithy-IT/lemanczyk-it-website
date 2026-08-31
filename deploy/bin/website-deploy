@@ -21,6 +21,13 @@ RUNNER_USER=github-runner
 CHECKOUT=/opt/actions-runner-website/_work/lemanczyk-it-website/lemanczyk-it-website
 DEPLOY="$CHECKOUT/deploy/deploy.py"
 
+# Every deployment adds a release directory, so retention has to be automatic or
+# it never happens. Ten is a deliberate compromise: enough rollback points to
+# cover a bad week, few enough that the disk does not fill quietly. The deployer
+# never retires the release being served nor the one it is switching away from,
+# so the immediate rollback target always survives.
+KEEP_RELEASES=10
+
 mode=${1:-apply}
 case "$mode" in
     apply | --plan) ;;
@@ -84,6 +91,6 @@ export LEMANCZYK_RELEASE_COMMIT="$head"
 export LEMANCZYK_RELEASE_DATE="$date"
 
 if [ "$mode" = "--plan" ]; then
-    exec /usr/bin/python3 "$DEPLOY"
+    exec /usr/bin/python3 "$DEPLOY" --keep "$KEEP_RELEASES"
 fi
-exec /usr/bin/python3 "$DEPLOY" --apply
+exec /usr/bin/python3 "$DEPLOY" --keep "$KEEP_RELEASES" --apply

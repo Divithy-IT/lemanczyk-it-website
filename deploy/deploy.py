@@ -223,7 +223,10 @@ def prunable(keep: int, release: Path, current: str | None, root: Path) -> list[
         protected.add(Path(current).name)
     existing = sorted((path for path in base.iterdir() if path.is_dir()), key=lambda p: p.name)
     candidates = [path for path in existing if path.name not in protected]
-    surplus = len(existing) - keep
+    # The release being deployed counts towards the limit even though it does
+    # not exist yet, otherwise --keep N always leaves N+1 directories behind.
+    total_after = len(existing) + (0 if rooted(release, root).is_dir() else 1)
+    surplus = total_after - keep
     return [RELEASES / path.name for path in candidates[:max(0, surplus)]]
 
 

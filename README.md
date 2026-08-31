@@ -95,7 +95,7 @@ sudo ./deploy/deploy.py --apply
 
 Deployer nie dotyka `/etc/`, więc sekrety w `/etc/lemanczyk-it/contact-mailer.env` pozostają nienaruszone; `api/contact-config.php` w repozytorium tylko je wczytuje. Nie dotyka też `/var/www/html`, `/var/www/cs16-fastdl` ani niczego należącego do pozostałych repozytoriów.
 
-Stare wydania nie są usuwane automatycznie. Retencję uruchamia się świadomie: `sudo ./deploy/deploy.py --keep 5 --apply` zostawia pięć najnowszych i nigdy nie usuwa wydania aktualnie serwowanego.
+Retencja jest automatyczna: wrapper zawsze wdraża z `--keep 10`, więc katalog wydań utrzymuje dziesięć najnowszych. Wydanie aktualnie serwowane oraz to, z którego właśnie schodzimy, nigdy nie są usuwane — cel natychmiastowego rollbacku zawsze przetrwa. Ręcznie limit ustawia się flagą, a `--keep 0` wyłącza retencję zupełnie.
 
 Rollback to przełączenie symlinka na poprzednie wydanie, `nginx -t` i reload:
 
