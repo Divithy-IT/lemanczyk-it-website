@@ -125,7 +125,8 @@ Projekt rozwija Michał Lemanczyk — [profil GitHub Divithy-IT](https://github.
 
 ## Prawa
 
-Source code available for portfolio and educational review. All rights reserved.
+Kod źródłowy udostępniony do wglądu w celach portfoliowych i edukacyjnych.
+Wszelkie prawa zastrzeżone.
 
 ---
 
