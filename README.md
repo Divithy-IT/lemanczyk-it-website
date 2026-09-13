@@ -126,3 +126,71 @@ Projekt rozwija Michał Lemanczyk — [profil GitHub Divithy-IT](https://github.
 ## Prawa
 
 Source code available for portfolio and educational review. All rights reserved.
+
+---
+
+## English
+
+The professional services website for Lemanczyk-IT, built with an emphasis on
+performance, accessibility, SEO and safe contact handling. Production runs at
+[lemanczyk-it.pl](https://lemanczyk-it.pl).
+
+### Features
+
+Separate indexable pages for services, portfolio, technologies and contact; a
+responsive sticky-header navigation with full keyboard support; dedicated hero
+artwork for desktop and mobile; and a contact form with backend validation,
+Cloudflare Turnstile, a honeypot field and a limit of one successful message per
+180 seconds. Mail is sent over authenticated SMTP whose configuration lives
+outside the repository. Static HTML documents are generated for crawlers, along
+with a 404 page.
+
+Routes: `/`, `/o-mnie`, `/uslugi`, `/portfolio`, `/technologie`, `/kontakt`,
+`/polityka-prywatnosci` and `/dane-firmy`.
+
+### Stack
+
+React 18, TypeScript and React Router · Vite 6 and Tailwind CSS · PHP 8 for the
+contact endpoint · local SVG, semantic HTML and CSS · nginx and Linux in
+production.
+
+### SEO and accessibility
+
+Every public route has a unique title, description, canonical URL, Open Graph
+metadata and a sensible H1. The project ships `sitemap.xml`, `robots.txt`,
+JSON-LD, a manifest, favicons and static HTML fallbacks produced at build time.
+The interface provides a skip link, visible focus states, labelled form fields,
+semantic navigation, keyboard menu control, Escape handling and
+`prefers-reduced-motion` support. Images declare their dimensions to limit CLS.
+
+### Security
+
+The contact endpoint resolves the recipient server-side, rejects header
+injection attempts, verifies the Turnstile token, caps field lengths and send
+frequency, and always returns controlled JSON. SMTP passwords, the CAPTCHA
+secret and the anonymisation secret never reach the code, the frontend or GitHub
+Actions.
+
+### Running locally
+
+Requires Node.js 20+, npm and PHP 8 with `mbstring`.
+
+```bash
+npm ci
+npm run dev
+```
+
+The contact form needs a separate local PHP endpoint or a mock — never copy
+production secrets. Use `npm run build` to produce the release bundle and
+`npm test` to run the full suite: build, SEO and technical-file checks, UI
+regressions, PHP lint and form tests with mocked SMTP failures.
+
+### Deployment
+
+Production uses atomic releases behind a symlinked current-version directory.
+A new build is verified before the switch, and the previous release stays
+available for rollback. CI does not deploy; a separate `Deploy` workflow runs
+only after CI passes on `main`. Infrastructure details and secrets are not part
+of this repository.
+
+Source code available for portfolio and educational review. All rights reserved.
