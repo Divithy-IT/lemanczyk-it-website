@@ -11,7 +11,7 @@ const checks = [
   [styles.includes("@media (max-width: 1023px)") && styles.includes("mobile-menu-button"), "hamburger mobile"],
   [pages.includes("hero-system-desktop.svg") && pages.includes("hero-system-mobile.svg") && pages.includes("<picture"), "warianty hero"],
   [data.includes("https://www.youtube.com/@Divithy") && pages.includes("Zobacz kanał YouTube"), "link YouTube"],
-  [!data.includes("https://github.com/Divithy-IT/lemanczyk-platform"), "brak linku do prywatnego repo"],
+  [!data.includes('"https://github.com/Divithy-IT/lemanczyk-platform"'), "brak linku do prywatnego repo"],
   [pages.includes("michal-lemanczyk-689.webp") && pages.includes("about-portrait"), "responsywny portret"],
 ];
 const failed = checks.filter(([ok]) => !ok).map(([, label]) => label);

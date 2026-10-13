@@ -57,7 +57,7 @@ export function Footer() {
       <div className="site-container grid gap-10 lg:grid-cols-[1.4fr_1fr_1fr]">
         <div>
           <p className="font-['Sora',system-ui,sans-serif] text-2xl font-bold text-white">Lemanczyk<span className="text-blue-400">-IT</span></p>
-          <p className="mt-4 max-w-md leading-relaxed">Dedykowane aplikacje webowe, automatyzacje, integracje API oraz rozwiązania Linux i VPS dla firm.</p>
+          <p className="mt-4 max-w-md leading-relaxed">Programista Full Stack z Bydgoszczy. Jednorazowe wsparcie i długoterminowa współpraca B2B przy aplikacjach, e-commerce, integracjach API i automatyzacjach.</p>
           <p className="mt-4 text-sm">{company.name}<br />{company.address}<br />NIP: {company.nip}</p>
         </div>
         <div>
