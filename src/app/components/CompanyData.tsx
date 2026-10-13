@@ -1,4 +1,5 @@
 import { Building2, CalendarDays, CheckCircle2, Hash, MapPin } from "lucide-react";
+import { Seo } from "./Seo";
 
 const companyDetails = [
   {
@@ -42,6 +43,7 @@ const companyDetails = [
 export default function CompanyData() {
   return (
       <main id="main-content" className="bg-white text-gray-900 font-sans">
+        <Seo title="Dane firmy | Lemanczyk-IT" description="Dane rejestrowe działalności MICHAŁ LEMANCZYK IT." path="/dane-firmy" schema={{ "@context": "https://schema.org", "@type": "WebPage", name: "Dane firmy | Lemanczyk-IT", url: "https://lemanczyk-it.pl/dane-firmy" }} />
         <section className="relative z-10 py-14 sm:py-20 lg:py-28">
           <div className="max-w-[1440px] mx-auto px-5 sm:px-6 lg:px-12">
             <div className="max-w-5xl">

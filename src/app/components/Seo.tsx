@@ -1,8 +1,11 @@
-import { useEffect } from "react";
+import { createContext, useContext, useEffect } from "react";
 
-type Props = { title: string; description: string; path: string; schema?: Record<string, unknown> | Record<string, unknown>[] };
+export type SeoMetadata = { title: string; description: string; path: string; schema?: Record<string, unknown> | Record<string, unknown>[]; robots?: string };
+export const SeoContext = createContext<{ current: SeoMetadata | null } | null>(null);
 
-export function Seo({ title, description, path, schema }: Props) {
+export function Seo({ title, description, path, schema, robots = "index,follow,max-image-preview:large" }: SeoMetadata) {
+  const metadata = useContext(SeoContext);
+  if (metadata) metadata.current = { title, description, path, schema, robots };
   useEffect(() => {
     const canonical = `https://lemanczyk-it.pl${path === "/" ? "/" : path}`;
     document.title = title;
@@ -18,6 +21,7 @@ export function Seo({ title, description, path, schema }: Props) {
       node.setAttribute("content", value);
     };
     setMeta('meta[name="description"]', "name=description", description);
+    setMeta('meta[name="robots"]', "name=robots", robots);
     setMeta('meta[property="og:title"]', "property=og:title", title);
     setMeta('meta[property="og:description"]', "property=og:description", description);
     setMeta('meta[property="og:url"]', "property=og:url", canonical);
@@ -35,6 +39,6 @@ export function Seo({ title, description, path, schema }: Props) {
       script.text = JSON.stringify(schema);
       document.head.appendChild(script);
     }
-  }, [title, description, path, schema]);
+  }, [title, description, path, schema, robots]);
   return null;
 }

@@ -1,9 +1,9 @@
-import { createBrowserRouter } from "react-router";
+import type { RouteObject } from "react-router";
 import SiteChrome from "./components/SiteChrome";
 import CompanyData from "./components/CompanyData";
 import { AboutPage, ContactPage, HomePage, NotFoundPage, PortfolioPage, PrivacyPage, ServicesPage, TechnologiesPage } from "./components/Pages";
 
-export const router = createBrowserRouter([
+export const routes: RouteObject[] = [
   {
     path: "/",
     Component: SiteChrome,
@@ -19,4 +19,4 @@ export const router = createBrowserRouter([
       { path: "*", Component: NotFoundPage },
     ],
   },
-]);
+];

@@ -20,6 +20,8 @@ for (const route of routes) {
     [html.includes('<html lang="pl">'), "lang=pl"],
     [html.includes('property="og:title"'), "Open Graph"],
     [html.includes('application/ld+json'), "JSON-LD"],
+    [html.includes('data-prerendered="true"') && html.includes("<header") && html.includes("<footer"), "pełny HTML strony"],
+    [html.includes('href="/uslugi"') && html.includes('href="/kontakt"'), "nawigacja w HTML"],
   ];
   for (const [ok, label] of checks) {
     if (!ok) { console.error(`${file}: brak lub błąd — ${label}`); failed = true; }

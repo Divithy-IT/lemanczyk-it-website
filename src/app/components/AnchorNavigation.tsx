@@ -1,6 +1,8 @@
 import { useEffect, useLayoutEffect } from "react";
 import { useLocation } from "react-router";
 
+const useBrowserLayoutEffect = typeof window === "undefined" ? useEffect : useLayoutEffect;
+
 const legacyRootAnchors: Record<string, string> = {
   "#kontakt": "/kontakt", "#uslugi": "/uslugi", "#portfolio": "/portfolio",
   "#technologie": "/technologie", "#o-mnie": "/o-mnie",
@@ -24,7 +26,7 @@ function scrollToCurrentAnchor() {
 export function AnchorNavigation() {
   const location = useLocation();
 
-  useLayoutEffect(() => {
+  useBrowserLayoutEffect(() => {
     const header = document.querySelector<HTMLElement>(".site-header");
     if (!header) return;
     const update = () => document.documentElement.style.setProperty("--site-header-height", `${header.getBoundingClientRect().height}px`);
@@ -34,7 +36,7 @@ export function AnchorNavigation() {
     return () => observer.disconnect();
   }, []);
 
-  useLayoutEffect(() => {
+  useBrowserLayoutEffect(() => {
     const legacy = location.pathname === "/" ? legacyRootAnchors[location.hash] : undefined;
     if (legacy) { window.location.replace(legacy); return; }
     let observer: MutationObserver | undefined;

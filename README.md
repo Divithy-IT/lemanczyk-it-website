@@ -32,7 +32,9 @@ Profesjonalna strona ofertowa Lemanczyk-IT, zbudowana z naciskiem na wydajność
 
 ## SEO
 
-Każda publiczna trasa ma unikalny tytuł, opis, canonical, Open Graph i logiczny nagłówek H1. Projekt zawiera `sitemap.xml`, `robots.txt`, JSON-LD, manifest, favicony oraz statyczne fallbacki HTML generowane podczas buildu.
+Każda publiczna trasa ma unikalny tytuł, opis, canonical, Open Graph i logiczny nagłówek H1. Build renderuje pełną treść, nawigację i stopkę z tych samych komponentów React, które działają w przeglądarce. Metadane pochodzą z komponentu `Seo`, a lista publicznych tras z `sitemap.xml`. Gotowe HTML są serwowane statycznie; React przyłącza obsługę interakcji przez hydratację. Produkcja nie wymaga serwera Node.js. Strona błędu ma `noindex` i jest serwowana z HTTP 404.
+
+Bundle używany tylko podczas generowania HTML trafia do ignorowanego katalogu `.prerender/`, poza publikowanym `dist/`. Build nie pobiera zewnętrznych usług ani nie wykonuje efektów formularza kontaktowego.
 
 ## Dostępność
 
@@ -74,6 +76,8 @@ npm test
 ```
 
 Zestaw obejmuje build, kontrolę SEO i plików technicznych, regresje UI, lint PHP oraz testy formularza z mockowanymi błędami SMTP (timeout, uwierzytelnienie i niedostępny serwer).
+
+`npm run test:production` sprawdza gotowe pliki z `dist/`: treść i nawigację bez JavaScriptu, hydratację bez błędów, formularz z mockowanym API, responsywność i fragmenty URL. CI uruchamia zarówno testy deweloperskie, jak i testy gotowej strony.
 
 ## Deployment
 

@@ -123,5 +123,5 @@ export function PrivacyPage() {
 }
 
 export function NotFoundPage() {
-  return <main id="main-content" className="page-hero"><Seo title="Nie znaleziono strony | Lemanczyk-IT" description="Podany adres nie istnieje. Wróć na stronę główną Lemanczyk-IT." path="/404" /><div className="site-container text-center"><Eyebrow>Błąd 404</Eyebrow><h1>Ta strona nie istnieje</h1><p className="lead mx-auto">Adres mógł się zmienić albo zawiera błąd.</p><Link className="btn-primary mt-8" to="/">Wróć na stronę główną</Link></div></main>;
+  return <main id="main-content" className="page-hero"><Seo title="Nie znaleziono strony | Lemanczyk-IT" description="Podany adres nie istnieje. Wróć na stronę główną Lemanczyk-IT." path="/404" robots="noindex,follow" /><div className="site-container text-center"><Eyebrow>Błąd 404</Eyebrow><h1>Ta strona nie istnieje</h1><p className="lead mx-auto">Adres mógł się zmienić albo zawiera błąd.</p><Link className="btn-primary mt-8" to="/">Wróć na stronę główną</Link></div></main>;
 }
