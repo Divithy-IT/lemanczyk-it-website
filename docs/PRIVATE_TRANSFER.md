@@ -27,8 +27,8 @@ formats download as attachments; there is no transcoding or media execution.
 
 ## Limits and storage
 
-- Maximum file: 12 GiB (also covers a 10 GB or 10 GiB film).
-- Total declared file sizes: 16 GiB, including unfinished uploads; at most 50
+- Maximum file: 16 GiB (also covers a 16 GB film).
+- Total declared file sizes: 20 GiB, including unfinished uploads; at most 50
   records. New uploads reserve their whole declared size in this budget.
 - At least 8 GiB of physical disk free must remain, accounting for other pending
   transfer reservations at creation and checking again before every chunk.

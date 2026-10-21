@@ -26,8 +26,8 @@ from urllib.parse import parse_qs, quote, urlsplit
 
 GIB = 1024 ** 3
 CHUNK = 8 * 1024 ** 2
-MAX_FILE = 12 * GIB
-QUOTA = 16 * GIB
+MAX_FILE = 16 * GIB
+QUOTA = 20 * GIB
 RESERVE = 8 * GIB
 SESSION_TTL = 24 * 3600
 COOKIE = "__Secure-daj_session"
@@ -125,7 +125,7 @@ class Store:
                 or any(ord(c) < 32 or ord(c) == 127 or c in "/\\" for c in name)):
             raise Rejected(400, "Nieprawidłowa nazwa pliku.")
         if type(size) is not int or not 0 < size <= MAX_FILE:
-            raise Rejected(413, "Maksymalny rozmiar pliku to 12 GiB.")
+            raise Rejected(413, "Maksymalny rozmiar pliku to 16 GiB.")
         if type(modified) is not int or modified < 0 or modified > 2 ** 53:
             raise Rejected(400, "Nieprawidłowe dane pliku.")
         with self.write_lock, closing(self.connect()) as db, db:

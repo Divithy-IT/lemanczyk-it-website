@@ -1,6 +1,6 @@
 "use strict";
 const $ = id => document.getElementById(id);
-let csrf = "", active = false, paused = false, currentXHR = null, wakeLock = null, maxFile = 12 * 1024 ** 3;
+let csrf = "", active = false, paused = false, currentXHR = null, wakeLock = null, maxFile = 16 * 1024 ** 3;
 const chunkSize = 8 * 1024 ** 2;
 const fileURL = id => `/daj/file/${id}`;
 const bytes = value => value >= 1024 ** 3 ? `${(value / 1024 ** 3).toFixed(2)} GiB` : `${(value / 1024 ** 2).toFixed(1)} MiB`;
@@ -115,7 +115,7 @@ function sendChunk(identifier, offset, blob, progress) {
 }
 $("upload").addEventListener("click", async () => {
   const file = $("file").files[0]; if (!file || active) return;
-  if (file.size === 0 || file.size > maxFile) { message("upload-message", "Wybierz niepusty plik o rozmiarze do 12 GiB.", "error"); return; }
+  if (file.size === 0 || file.size > maxFile) { message("upload-message", "Wybierz niepusty plik o rozmiarze do 16 GiB.", "error"); return; }
   active = true; paused = false; $("upload").disabled = true; $("file").disabled = true; $("pause").hidden = false; $("progress-area").hidden = false;
   let start = performance.now(), initialOffset = 0, confirmed = 0;
   function progress(sent) {
