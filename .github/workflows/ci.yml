@@ -25,10 +25,14 @@ jobs:
         run: |
           bash -n deploy/bin/website-deploy
           python3 tests/deploy_plan_test.py
+          python3 -m unittest discover -s tests -p 'test_transfer.py' -v
+          node --check transfer/app.js
       - name: Install browser for responsive tests
         run: npx playwright install --with-deps chromium
       - name: Run responsive browser tests
         run: npm run test:ui
+      - name: Verify private transfer in a real browser
+        run: node tests/transfer_browser.mjs
       - name: Verify prerendered pages and production hydration
         run: npm run test:production
       - name: Check for common secret patterns

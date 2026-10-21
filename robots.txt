@@ -1,5 +1,6 @@
 User-agent: *
 Allow: /
 Disallow: /api/
+Disallow: /daj/
 
 Sitemap: https://lemanczyk-it.pl/sitemap.xml

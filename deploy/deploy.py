@@ -125,6 +125,8 @@ def rooted(target: Path, root: Path) -> Path:
 def entries(release: Path, sources: list[Path], dist: Path) -> list[Entry]:
     result = [Entry(source, release / source.relative_to(dist)) for source in sources]
     result.append(Entry(ROOT / "deploy/bin/website-deploy", HELPERS / "website-deploy", 0o755))
+    for name in ("app.py", "index.html", "app.js", "style.css"):
+        result.append(Entry(ROOT / "transfer" / name, HELPERS.parent / "transfer" / name))
     return result
 
 
@@ -349,6 +351,10 @@ def main() -> int:
         subprocess.run(["nginx", "-t"], check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         subprocess.run(["systemctl", "reload", NGINX], check=True)
         subprocess.run(["systemctl", "reload", PHP_FPM], check=True)
+        if (Path("/etc/systemd/system/lemanczyk-transfer.service").is_file()
+                and any(str(item.target).startswith(str(HELPERS.parent / "transfer") + "/") for item in changed_items)):
+            # The infrastructure repo owns the unit. Preserve standby on first install.
+            subprocess.run(["systemctl", "try-restart", "lemanczyk-transfer.service"], check=True)
     # Verify what a visitor actually gets, and undo the switch if it is broken.
     # A green workflow is not evidence that the page loads.
     checked: list[str] = []

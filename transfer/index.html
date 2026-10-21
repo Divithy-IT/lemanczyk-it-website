@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="pl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow, noarchive">
+  <title>Prywatny transfer plików</title>
+  <link rel="stylesheet" href="/daj/style.css">
+  <script src="/daj/app.js" defer></script>
+</head>
+<body>
+<main>
+  <a class="home" href="/">← Strona główna</a>
+  <header><span class="eyebrow">LEMANCZYK-IT · PRYWATNY TRANSFER</span>
+    <h1>Duży plik.<br>Prosta droga.</h1>
+    <p>Wyślij plik bezpośrednio na serwer. Po zakończeniu będzie można go pobrać, a obsługiwany film także obejrzeć.</p>
+  </header>
+  <section id="login" class="card">
+    <h2>Wejdź do skrzynki</h2>
+    <p>Dostęp do wysyłania i plików jest chroniony wspólnym hasłem.</p>
+    <form id="login-form">
+      <label for="password">Hasło dostępu</label>
+      <div class="password-row"><input id="password" type="password" autocomplete="current-password" required maxlength="256"><button id="show-password" type="button" class="secondary" aria-label="Pokaż hasło">Pokaż</button></div>
+      <button id="login-button" type="submit">Otwórz skrzynkę →</button>
+    </form>
+    <p id="login-message" class="message" role="status" aria-live="polite"></p>
+  </section>
+  <div id="workspace" hidden>
+    <section class="card">
+      <div class="section-heading"><h2>Wyślij plik</h2><button id="logout" class="secondary" type="button">Wyloguj</button></div>
+      <label class="file-label" for="file">Wybierz plik z urządzenia</label>
+      <input id="file" type="file">
+      <p class="muted">Do 12 GiB na plik. Zostaw tę kartę otwartą i urządzenie aktywne. Po przerwaniu wybierz ponownie ten sam plik — wysyłanie zostanie wznowione.</p>
+      <div class="actions"><button id="upload" type="button" disabled>Rozpocznij / wznów wysyłanie</button><button id="pause" class="secondary" type="button" hidden>Wstrzymaj</button></div>
+      <div id="progress-area" hidden>
+        <div class="progress-label"><strong id="percent">0%</strong><span id="transferred"></span></div>
+        <progress id="progress" max="100" value="0" aria-label="Postęp wysyłania"></progress>
+        <p id="estimate" class="muted">Obliczam prędkość i pozostały czas…</p>
+      </div>
+      <p id="upload-message" class="message" role="status" aria-live="polite"></p>
+    </section>
+    <section class="card">
+      <div class="section-heading"><h2>Pliki w skrzynce</h2><button id="refresh" class="secondary" type="button">Odśwież</button></div>
+      <p id="files-message" class="muted">Ładowanie…</p>
+      <div id="files"></div>
+    </section>
+    <section id="player-area" class="card" hidden>
+      <div class="section-heading"><h2 id="player-title">Podgląd filmu</h2><button id="close-player" class="secondary" type="button">Zamknij</button></div>
+      <video id="player" controls playsinline preload="metadata"></video>
+      <p class="muted">Odtwarzanie zależy od formatu i kodeka filmu. Jeśli przeglądarka go nie obsługuje, pobierz plik.</p>
+    </section>
+  </div>
+  <footer>Pliki i ich linki wymagają hasła. Skrzynka nie jest publiczną galerią.</footer>
+</main>
+</body>
+</html>
