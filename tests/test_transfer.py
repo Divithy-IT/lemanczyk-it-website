@@ -25,9 +25,13 @@ class TransferTests(unittest.TestCase):
         directory = Path(self.temporary.name)
         salt = os.urandom(32)
         self.password = "fixture-only-" + os.urandom(16).hex()
+        viewer_salt = os.urandom(32)
+        self.viewer_password = "viewer-fixture-" + os.urandom(16).hex()
         credential = directory / "credential.json"
         credential.write_text(json.dumps({"salt": salt.hex(), "hash": hashlib.scrypt(
-            self.password.encode(), salt=salt, n=16384, r=8, p=1, dklen=32).hex()}))
+            self.password.encode(), salt=salt, n=16384, r=8, p=1, dklen=32).hex(),
+            "viewer_salt": viewer_salt.hex(), "viewer_hash": hashlib.scrypt(
+                self.viewer_password.encode(), salt=viewer_salt, n=16384, r=8, p=1, dklen=32).hex()}))
         self.store = app.Store(directory / "files", credential)
         self.server = app.Server(("127.0.0.1", 0), self.store)
         self.server_errors = []
@@ -97,6 +101,48 @@ class TransferTests(unittest.TestCase):
         for _ in range(8):
             self.assertEqual(self.request("POST", "api/login", {"password": "wrong"})[0], 401)
         self.assertEqual(self.request("POST", "api/login", {"password": self.password})[0], 429)
+
+    def test_viewer_reads_finished_files_but_cannot_mutate_or_inspect_uploads(self):
+        finished = self.create(size=4)
+        path = "api/uploads/" + finished["id"]
+        self.assertEqual(self.request("PATCH", path, b"film", {"Upload-Offset": "0"})[0], 200)
+        self.assertEqual(self.request("POST", path + "/finish", {})[0], 200)
+        partial = self.create(name="unfinished-secret-name.mp4", size=4)
+        pending_path = "api/uploads/" + partial["id"]
+        original_cookie, original_csrf = self.cookie, self.csrf
+        # A client-supplied role cannot grant upload access.
+        status, headers, body = self.request("POST", "api/login", {"password": self.viewer_password, "role": "uploader"})
+        self.assertEqual(status, 200)
+        viewer = json.loads(body)
+        self.assertEqual(viewer["role"], "viewer")
+        self.assertFalse(viewer["can_upload"])
+        self.cookie = headers["Set-Cookie"].split(";", 1)[0]
+        self.csrf = viewer["csrf"]
+        status, _, body = self.request("GET", "api/status")
+        self.assertEqual(status, 200)
+        self.assertEqual([item["id"] for item in json.loads(body)["files"]], [finished["id"]])
+        self.assertNotIn(partial["name"].encode(), body)
+        for method, target, payload in (
+            ("POST", "api/uploads", {"name": "attempt.mp4", "size": 1, "modified": 1}),
+            ("PATCH", pending_path, b"evil"),
+            ("POST", pending_path + "/finish", {}),
+            ("DELETE", pending_path, None),
+            ("GET", pending_path, None),
+            ("PATCH", path, b"evil"),
+            ("POST", path + "/finish", {}),
+            ("DELETE", path, None),
+        ):
+            with self.subTest(method=method, path=target):
+                self.assertEqual(self.request(method, target, payload, {"Upload-Offset": "0", "X-Role": "uploader"})[0], 403)
+        self.assertEqual(self.store.path(partial["id"]).stat().st_size, 0)
+        self.assertEqual(self.request("GET", "file/" + finished["id"])[2], b"film")
+        self.assertEqual(self.request("GET", "file/" + finished["id"] + "?download=1")[2], b"film")
+        self.assertEqual(self.request("GET", "file/" + finished["id"], headers={"Range": "bytes=1-2"})[2], b"il")
+        self.assertEqual(self.request("POST", "api/logout", {})[0], 200)
+        self.assertEqual(self.request("GET", "api/status")[0], 401)
+        self.cookie, self.csrf = original_cookie, original_csrf
+        self.assertEqual(self.request("PATCH", pending_path, b"okay", {"Upload-Offset": "0"})[0], 200)
+        self.assertEqual(self.request("POST", pending_path + "/finish", {})[0], 200)
 
     def test_resuming_conflicting_offsets_finalize_ranges_and_exact_bytes(self):
         upload = self.create()

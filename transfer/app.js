@@ -1,6 +1,6 @@
 "use strict";
 const $ = id => document.getElementById(id);
-let csrf = "", active = false, paused = false, currentXHR = null, wakeLock = null, maxFile = 16 * 1024 ** 3;
+let csrf = "", canUpload = false, active = false, paused = false, currentXHR = null, wakeLock = null, maxFile = 16 * 1024 ** 3;
 const chunkSize = 8 * 1024 ** 2;
 const fileURL = id => `/daj/file/${id}`;
 const bytes = value => value >= 1024 ** 3 ? `${(value / 1024 ** 3).toFixed(2)} GiB` : `${(value / 1024 ** 2).toFixed(1)} MiB`;
@@ -12,7 +12,7 @@ function duration(seconds) {
 }
 function message(id, text, kind = "") { $(id).textContent = text; $(id).className = `message ${kind}`; }
 function loggedOut() {
-  csrf = ""; $("login").hidden = false; $("workspace").hidden = true;
+  csrf = ""; canUpload = false; $("login").hidden = false; $("workspace").hidden = true; $("upload-card").hidden = true;
   $("files").replaceChildren(); $("player").pause(); $("player").removeAttribute("src"); $("player").load();
   $("player-area").hidden = true;
 }
@@ -35,8 +35,10 @@ function action(label, callback) {
 }
 async function refresh(followLink = false) {
   const status = await api("status"); csrf = status.csrf; maxFile = status.max_file;
+  canUpload = status.can_upload === true; $("upload-card").hidden = !canUpload;
+  $("access-mode").textContent = canUpload ? "Dostęp: wysyłanie, oglądanie i pobieranie" : "Dostęp: oglądanie i pobieranie";
   $("login").hidden = true; $("workspace").hidden = false;
-  $("files").replaceChildren(); $("files-message").textContent = status.files.length ? "" : "Skrzynka jest pusta. Możesz wysłać pierwszy plik.";
+  $("files").replaceChildren(); $("files-message").textContent = status.files.length ? "" : canUpload ? "Skrzynka jest pusta. Możesz wysłać pierwszy plik." : "Nie ma jeszcze gotowych plików. Wróć po zakończeniu wysyłania.";
   for (const file of status.files) {
     const row = document.createElement("div"); row.className = "file-row";
     const name = document.createElement("p"); name.className = "file-name"; name.textContent = file.name;
@@ -51,7 +53,7 @@ async function refresh(followLink = false) {
         try { await navigator.clipboard.writeText(location.origin + fileURL(file.id)); event.target.textContent = "Link skopiowany"; }
         catch { message("files-message", `Link do pliku: ${location.origin + fileURL(file.id)}`); }
       }));
-    } else {
+    } else if (canUpload) {
       actions.append(action("Jak wznowić?", () => {
         message("upload-message", `Wybierz ponownie plik „${file.name}” i kliknij „Rozpocznij / wznów wysyłanie”.`);
         $("file").scrollIntoView({behavior: "smooth", block: "center"});
@@ -89,7 +91,7 @@ $("login-form").addEventListener("submit", async event => {
 $("logout").addEventListener("click", async () => {
   paused = true; currentXHR?.abort();
   try { await api("logout", "POST", {}); loggedOut(); }
-  catch (error) { message("upload-message", error.message, "error"); }
+  catch (error) { message("files-message", error.message, "error"); }
 });
 $("refresh").addEventListener("click", () => refresh().catch(error => message("files-message", error.message, "error")));
 $("close-player").addEventListener("click", () => { $("player").pause(); $("player").removeAttribute("src"); $("player").load(); $("player-area").hidden = true; });
@@ -114,7 +116,7 @@ function sendChunk(identifier, offset, blob, progress) {
   });
 }
 $("upload").addEventListener("click", async () => {
-  const file = $("file").files[0]; if (!file || active) return;
+  const file = $("file").files[0]; if (!file || active || !canUpload) return;
   if (file.size === 0 || file.size > maxFile) { message("upload-message", "Wybierz niepusty plik o rozmiarze do 16 GiB.", "error"); return; }
   active = true; paused = false; $("upload").disabled = true; $("file").disabled = true; $("pause").hidden = false; $("progress-area").hidden = false;
   let start = performance.now(), initialOffset = 0, confirmed = 0;

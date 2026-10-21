@@ -17,7 +17,7 @@
   </header>
   <section id="login" class="card">
     <h2>Wejdź do skrzynki</h2>
-    <p>Dostęp do wysyłania i plików jest chroniony wspólnym hasłem.</p>
+    <p>Podaj hasło do oglądania i pobierania albo hasło z dostępem do wysyłania.</p>
     <form id="login-form">
       <label for="password">Hasło dostępu</label>
       <div class="password-row"><input id="password" type="password" autocomplete="current-password" required maxlength="256"><button id="show-password" type="button" class="secondary" aria-label="Pokaż hasło">Pokaż</button></div>
@@ -26,8 +26,9 @@
     <p id="login-message" class="message" role="status" aria-live="polite"></p>
   </section>
   <div id="workspace" hidden>
-    <section class="card">
-      <div class="section-heading"><h2>Wyślij plik</h2><button id="logout" class="secondary" type="button">Wyloguj</button></div>
+    <div class="section-heading"><p id="access-mode" class="muted"></p><button id="logout" class="secondary" type="button">Wyloguj</button></div>
+    <section id="upload-card" class="card" hidden>
+      <h2>Wyślij plik</h2>
       <label class="file-label" for="file">Wybierz plik z urządzenia</label>
       <input id="file" type="file">
       <p class="muted">Do 16 GiB na plik. Zostaw tę kartę otwartą i urządzenie aktywne. Po przerwaniu wybierz ponownie ten sam plik — wysyłanie zostanie wznowione.</p>

@@ -52,6 +52,12 @@ class Store:
         self.password_hash = bytes.fromhex(self.credential["hash"])
         if len(self.salt) != 32 or len(self.password_hash) != 32:
             raise ValueError("invalid transfer credential")
+        self.viewer_salt = self.viewer_hash = None
+        if "viewer_salt" in self.credential or "viewer_hash" in self.credential:
+            self.viewer_salt = bytes.fromhex(self.credential["viewer_salt"])
+            self.viewer_hash = bytes.fromhex(self.credential["viewer_hash"])
+            if len(self.viewer_salt) != 32 or len(self.viewer_hash) != 32:
+                raise ValueError("invalid viewer credential")
         self.lock = threading.RLock()
         self.write_lock = threading.RLock()
         self.password_lock = threading.Lock()
@@ -108,15 +114,20 @@ class Store:
             if not isinstance(password, str) or len(password) > 256:
                 raise Rejected(401, "Nieprawidłowe hasło.")
             candidate = hashlib.scrypt(password.encode(), salt=self.salt, n=16384, r=8, p=1, dklen=32)
-            if not hmac.compare_digest(candidate, self.password_hash):
+            viewer_candidate = hashlib.scrypt(password.encode(), salt=self.viewer_salt or self.salt,
+                                               n=16384, r=8, p=1, dklen=32)
+            upload_access = hmac.compare_digest(candidate, self.password_hash)
+            view_access = self.viewer_hash is not None and hmac.compare_digest(viewer_candidate, self.viewer_hash)
+            if not upload_access and not view_access:
                 raise Rejected(401, "Nieprawidłowe hasło.")
+            role = "uploader" if upload_access else "viewer"
             self.attempts.pop(address, None)
             with self.lock:
                 self.sessions = {key: value for key, value in self.sessions.items() if value["expires"] > now}
                 if len(self.sessions) >= 256:
                     self.sessions.pop(next(iter(self.sessions)))
                 token, csrf = secrets.token_urlsafe(32), secrets.token_urlsafe(32)
-                self.sessions[token] = {"csrf": csrf, "expires": now + SESSION_TTL}
+                self.sessions[token] = {"csrf": csrf, "expires": now + SESSION_TTL, "role": role}
             return token, csrf
 
     def create(self, data):
@@ -266,7 +277,9 @@ class Handler(BaseHTTPRequestHandler):
             return
         if path == "/daj/api/login" and self.command == "POST":
             token, csrf = self.store.login(self.json_body().get("password"), self.headers.get("X-Real-IP", self.client_address[0]))
-            self.json_out(200, {"csrf": csrf}, {"Set-Cookie": f"{COOKIE}={token}; Path=/daj/; Secure; HttpOnly; SameSite=Strict; Max-Age={SESSION_TTL}"})
+            role = self.store.sessions[token]["role"]
+            self.json_out(200, {"csrf": csrf, "role": role, "can_upload": role == "uploader"},
+                          {"Set-Cookie": f"{COOKIE}={token}; Path=/daj/; Secure; HttpOnly; SameSite=Strict; Max-Age={SESSION_TTL}"})
             return
         try:
             token, session = self.session()
@@ -279,14 +292,19 @@ class Handler(BaseHTTPRequestHandler):
             raise
         if mutating and not hmac.compare_digest(self.headers.get("X-Daj-CSRF", ""), session["csrf"]):
             raise Rejected(403, "Odśwież stronę i spróbuj ponownie.")
+        can_upload = session["role"] == "uploader"
+        if path.startswith("/daj/api/uploads") and not can_upload:
+            raise Rejected(403, "Ten dostęp pozwala tylko oglądać i pobierać gotowe pliki.")
         if path == "/daj/api/logout" and self.command == "POST":
             with self.store.lock:
                 self.store.sessions.pop(token, None)
             self.json_out(200, {"ok": True}, {"Set-Cookie": f"{COOKIE}=; Path=/daj/; Secure; HttpOnly; SameSite=Strict; Max-Age=0"})
         elif path == "/daj/api/status" and self.command == "GET":
             with closing(self.store.connect()) as db:
-                files = [self.store.describe(row) for row in db.execute("SELECT * FROM files ORDER BY created DESC")]
-            self.json_out(200, {"csrf": session["csrf"], "files": files, "max_file": MAX_FILE, "chunk": CHUNK})
+                files = [self.store.describe(row) for row in db.execute("SELECT * FROM files ORDER BY created DESC")
+                         if can_upload or row["ready"]]
+            self.json_out(200, {"csrf": session["csrf"], "files": files, "max_file": MAX_FILE, "chunk": CHUNK,
+                                "role": session["role"], "can_upload": can_upload})
         elif path == "/daj/api/uploads" and self.command == "POST":
             self.json_out(200, self.store.create(self.json_body()))
         elif re.fullmatch(r"/daj/api/uploads/[0-9a-f]{32}(?:/finish)?", path):

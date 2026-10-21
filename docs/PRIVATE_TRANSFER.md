@@ -9,7 +9,14 @@ These directives supplement authentication; they do not replace it.
 
 ## Use
 
-Enter the shared password, select a file and start uploading. The browser sends
+There are two shared passwords. The uploader password allows uploading, viewing
+and downloading. The separate viewer password allows viewing and downloading
+finished files only. The server stores the role in its session and denies every
+upload API operation (create, inspect partial, append, finalize, delete) to viewers,
+even with valid CSRF tokens or forged client role fields. Viewers never see
+unfinished uploads in the file list, and the upload form is hidden.
+
+Enter the uploader password, select a file and start uploading. The browser sends
 8 MiB chunks, shows percent, measured average speed, estimated remaining time
 and approximate finish time. Keep the tab open and the device awake. Screen
 wake lock is requested where supported. A stopped transfer can be resumed by
@@ -18,7 +25,7 @@ Network failures retry up to five times, querying the committed server offset
 before each retry. After a browser or service restart, sign in again and select
 the file. Upload metadata and bytes survive service restarts.
 
-After the final server confirmation, authenticated users can download, copy a
+After the final server confirmation, users with either password can download, copy a
 link or view a supported movie. All links still require the shared password;
 opening a file link without a session returns to the login page. HTTP ranges
 support seeking and resumed downloads. MP4/M4V, WebM, OGV and MOV are offered
@@ -54,7 +61,11 @@ against the service's memory budget.
 
 Provision `/etc/lemanczyk-transfer/auth.json` as root, mode 0400, in a root-only
 directory. It contains only `salt` (32 random bytes as hex) and `hash` (32-byte
-scrypt result as hex, n=16384, r=8, p=1). No plaintext password, password hash,
+scrypt result as hex, n=16384, r=8, p=1) for upload access. The additional
+`viewer_salt` and `viewer_hash` fields use a separate salt and the same parameters
+for view/download access. Legacy credentials without both viewer fields keep
+viewer access disabled; partially configured viewer fields fail startup.
+No plaintext password, password hash,
 session token, production filename or upload content belongs in Git. The unit
 passes this file with systemd `LoadCredential`; the app has no direct access to
 other `/etc` secrets. No credentials are passed in process arguments or URLs.
@@ -78,7 +89,7 @@ error classes only. File responses are private/no-store and cannot be framed.
 Check `systemctl status lemanczyk-transfer.service`, `journalctl -u
 lemanczyk-transfer.service`, disk free space and `web.slice` memory after changes.
 `python3 -m unittest discover -s tests -p 'test_transfer.py' -v` runs live HTTP
-tests, including unauthenticated access, CSRF, password throttling, interrupted
+tests, including viewer read/write authorization, unauthenticated access, CSRF, password throttling, interrupted
 chunks, ranges, exact returned bytes and a sparse file offset above 5 GiB.
 
 To remove a completed file, first stop the transfer service, back up metadata,

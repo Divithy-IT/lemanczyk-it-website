@@ -8,7 +8,11 @@ import { chromium } from "@playwright/test";
 
 const directory = await mkdtemp(join(tmpdir(), "daj-browser-"));
 const password = randomBytes(20).toString("hex"), salt = randomBytes(32);
-await writeFile(join(directory, "auth.json"), JSON.stringify({salt: salt.toString("hex"), hash: scryptSync(password, salt, 32, {N: 16384, r: 8, p: 1}).toString("hex")}), {mode: 0o600});
+const viewerPassword = randomBytes(20).toString("hex"), viewerSalt = randomBytes(32);
+await writeFile(join(directory, "auth.json"), JSON.stringify({
+  salt: salt.toString("hex"), hash: scryptSync(password, salt, 32, {N: 16384, r: 8, p: 1}).toString("hex"),
+  viewer_salt: viewerSalt.toString("hex"), viewer_hash: scryptSync(viewerPassword, viewerSalt, 32, {N: 16384, r: 8, p: 1}).toString("hex"),
+}), {mode: 0o600});
 const server = spawn("python3", ["-u", "tests/serve_transfer_fixture.py", directory], {stdio: ["ignore", "pipe", "inherit"]});
 let browser;
 try {
@@ -26,6 +30,7 @@ try {
   await page.getByText("Nieprawidłowe hasło.", {exact: true}).waitFor();
   await page.locator("#password").fill(password); await page.locator("#login-button").click();
   await page.locator("#workspace").waitFor({state: "visible"});
+  assert.equal(await page.locator("#upload-card").isVisible(), true);
   assert.equal(await page.locator('meta[name="robots"]').getAttribute("content"), "noindex, nofollow, noarchive");
 
   const payload = Buffer.alloc(18 * 1024 ** 2 + 13, 0x5a), file = join(directory, "transfer-test.bin");
@@ -72,8 +77,27 @@ try {
   const anonymous = await browser.newContext(); const otherPage = await anonymous.newPage();
   await otherPage.goto(base + movieURL); await otherPage.locator("#login").waitFor({state: "visible"});
   assert.equal(await otherPage.locator("#workspace").isVisible(), false);
-  await otherPage.locator("#password").fill(password); await otherPage.locator("#login-button").click();
+  await otherPage.locator("#password").fill(viewerPassword); await otherPage.locator("#login-button").click();
   await otherPage.waitForFunction(() => document.getElementById("player").readyState >= 1);
+  assert.equal(await otherPage.locator("#upload-card").isVisible(), false);
+  assert.equal(await otherPage.locator("#file").isVisible(), false);
+  assert.equal(await otherPage.getByRole("button", {name: "Rozpocznij / wznów wysyłanie", exact: true}).isVisible(), false);
+  await otherPage.getByText("Dostęp: oglądanie i pobieranie", {exact: true}).waitFor();
+  const blocked = await otherPage.evaluate(async () => {
+    const status = await (await fetch("/daj/api/status")).json();
+    const response = await fetch("/daj/api/uploads", {method: "POST", headers: {"Content-Type": "application/json", "X-Daj-CSRF": status.csrf}, body: JSON.stringify({name: "forbidden.bin", size: 1, modified: 1})});
+    return {role: status.role, status: response.status};
+  });
+  assert.deepEqual(blocked, {role: "viewer", status: 403});
+  const viewerDownload = otherPage.waitForEvent("download");
+  await otherPage.locator(".file-row").filter({hasText: "browser-video.webm"}).getByRole("link", {name: "Pobierz plik", exact: true}).click();
+  assert.deepEqual(await readFile(await (await viewerDownload).path()), Buffer.from(video));
+  for (const width of [1440, 390]) {
+    await otherPage.setViewportSize({width, height: 900});
+    assert(await otherPage.evaluate(() => document.documentElement.scrollWidth <= innerWidth), `viewer overflow at ${width}`);
+    if (process.env.TRANSFER_SCREENSHOT_DIR) await otherPage.screenshot({path: join(process.env.TRANSFER_SCREENSHOT_DIR, `viewer-${width}.png`), fullPage: true});
+  }
+  await otherPage.locator("#logout").click(); await otherPage.locator("#login").waitFor({state: "visible"});
   await anonymous.close();
 
   for (const width of [1440, 390]) {
@@ -85,7 +109,7 @@ try {
   await page.locator("#logout").click(); await page.locator("#login").waitFor({state: "visible"});
   assert.equal(await page.locator("#files").textContent(), ""); assert.equal(await page.locator("#player").getAttribute("src"), null);
   assert.deepEqual(errors, []);
-  console.log("TRANSFER_BROWSER_OK: authentication, pause/reload/resume, exact download, native video, private links, desktop/mobile, logout");
+  console.log("TRANSFER_BROWSER_OK: uploader and viewer roles, upload API denied to viewer, pause/reload/resume, exact downloads, native video, private links, desktop/mobile, logout");
 } finally {
   if (browser) await browser.close();
   server.kill("SIGTERM");
