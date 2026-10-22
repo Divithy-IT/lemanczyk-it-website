@@ -28,6 +28,10 @@ from urllib.parse import parse_qs, quote, urlsplit
 
 GIB = 1024 ** 3
 CHUNK = 8 * 1024 ** 2
+STREAM_CHUNK = 8 * 1024 ** 2
+STREAMS = 8
+DOWNLOADS = 3
+WORKERS = 16
 MAX_FILE = 16 * GIB
 QUOTA = 20 * GIB
 RESERVE = 8 * GIB
@@ -68,7 +72,8 @@ class Store:
         self.lock = threading.RLock()
         self.write_lock = threading.RLock()
         self.password_lock = threading.Lock()
-        self.downloads = threading.BoundedSemaphore(3)
+        self.downloads = threading.BoundedSemaphore(DOWNLOADS)
+        self.streams = threading.BoundedSemaphore(STREAMS)
         self.sessions = {}
         self.attempts = {}
         self.global_attempts = deque()
@@ -436,17 +441,30 @@ class Handler(BaseHTTPRequestHandler):
             return
         mime = VIDEO_TYPES.get(Path(row["name"]).suffix.lower(), "application/octet-stream")
         disposition = "attachment" if "download" in parse_qs(self.path_parts.query) or mime == "application/octet-stream" else "inline"
+        streaming = disposition == "inline"
+        # A browser commonly requests bytes=0- for a multi-gigabyte movie.
+        # Return bounded ranges so paused players release capacity promptly.
+        # Downloads retain their exact requested range and original bytes.
+        if streaming and status == 206:
+            end = min(end, start + STREAM_CHUNK - 1)
         headers = {"Accept-Ranges": "bytes", "Content-Disposition": f"{disposition}; filename=\"plik\"; filename*=UTF-8''{quote(row['name'], safe='')}"}
         if status == 206:
             headers["Content-Range"] = f"bytes {start}-{end}/{size}"
-        if not self.store.downloads.acquire(blocking=False):
-            raise Rejected(429, "Trwają inne pobrania. Spróbuj ponownie za chwilę.")
+        if self.command == "HEAD":
+            self.headers_out(status, end - start + 1, mime, headers)
+            return
+        # Long original-file downloads must not prevent video playback.
+        slots = self.store.streams if streaming else self.store.downloads
+        if not slots.acquire(blocking=False):
+            self.json_out(429, {"message": "Trwają inne transfery. Spróbuj ponownie za chwilę."}, {"Retry-After": "5"})
+            return
         try:
+            # Reclaim a stalled player's slot without waiting two minutes.
+            if streaming:
+                self.connection.settimeout(15)
             with self.store.path(identifier).open("rb") as source:
                 source.seek(start)
                 self.headers_out(status, end - start + 1, mime, headers)
-                if self.command == "HEAD":
-                    return
                 remaining = end - start + 1
                 while remaining:
                     block = source.read(min(128 * 1024, remaining))
@@ -455,7 +473,7 @@ class Handler(BaseHTTPRequestHandler):
                     self.wfile.write(block)
                     remaining -= len(block)
         finally:
-            self.store.downloads.release()
+            slots.release()
 
     def handle_request(self):
         try:
@@ -478,7 +496,9 @@ class Server(ThreadingHTTPServer):
 
     def __init__(self, address, store):
         self.store = store
-        self.workers = threading.BoundedSemaphore(12)
+        # Reserve request capacity for the UI/auth/upload API even when every
+        # media transfer slot is occupied.
+        self.workers = threading.BoundedSemaphore(WORKERS)
         super().__init__(address, Handler)
 
     def process_request(self, request, address):

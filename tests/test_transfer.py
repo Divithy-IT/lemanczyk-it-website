@@ -245,6 +245,58 @@ class TransferTests(unittest.TestCase):
         with patch.object(app, "QUOTA", 2):
             self.assertEqual(self.request("POST", "api/uploads", {"name": "other", "size": 1, "modified": 1})[0], 507)
 
+    def test_busy_downloads_do_not_block_playback_or_metadata(self):
+        upload = self.create(size=4)
+        path = "api/uploads/" + upload["id"]
+        self.assertEqual(self.request("PATCH", path, b"film", {"Upload-Offset": "0"})[0], 200)
+        self.assertEqual(self.request("POST", path + "/finish", {})[0], 200)
+        self.store.public_files = frozenset([upload["id"]])
+        target = "file/" + upload["id"]
+        # Reproduce all three long download slots being occupied.
+        for _ in range(app.DOWNLOADS):
+            self.assertTrue(self.store.downloads.acquire(blocking=False))
+        try:
+            status, headers, body = self.request("GET", target + "?download=1", auth=False)
+            self.assertEqual(status, 429)
+            self.assertEqual(headers["Retry-After"], "5")
+            self.assertEqual(self.request("GET", target + "?stream=1", auth=False)[::2], (200, b"film"))
+            self.assertEqual(self.request("HEAD", target + "?download=1", auth=False)[0], 200)
+            for _ in range(app.STREAMS):
+                self.assertTrue(self.store.streams.acquire(blocking=False))
+            try:
+                self.assertEqual(self.request("GET", target + "?stream=1", auth=False)[0], 429)
+                self.assertEqual(self.request("HEAD", target + "?stream=1", auth=False)[0], 200)
+                self.assertEqual(self.request("GET", target, auth=False)[0], 200)
+                self.assertEqual(self.request("GET", "api/status")[0], 200)
+            finally:
+                for _ in range(app.STREAMS):
+                    self.store.streams.release()
+        finally:
+            for _ in range(app.DOWNLOADS):
+                self.store.downloads.release()
+        self.assertEqual(self.request("GET", target + "?download=1", auth=False)[::2], (200, b"film"))
+
+    def test_playback_ranges_are_bounded_and_downloads_remain_complete(self):
+        upload = self.create()
+        path = "api/uploads/" + upload["id"]
+        payload = b"0123456789abcdef"
+        self.assertEqual(self.request("PATCH", path, payload, {"Upload-Offset": "0"})[0], 200)
+        self.assertEqual(self.request("POST", path + "/finish", {})[0], 200)
+        self.store.public_files = frozenset([upload["id"]])
+        target = "file/" + upload["id"]
+        with patch.object(app, "STREAM_CHUNK", 4):
+            combined = b""
+            for start in range(0, 16, 4):
+                status, headers, body = self.request("GET", target + "?stream=1", headers={"Range": f"bytes={start}-"}, auth=False)
+                self.assertEqual(status, 206)
+                self.assertEqual(headers["Content-Range"], f"bytes {start}-{start + 3}/16")
+                self.assertEqual(headers["Content-Length"], "4")
+                combined += body
+            self.assertEqual(combined, payload)
+            status, headers, body = self.request("GET", target + "?download=1", headers={"Range": "bytes=0-"}, auth=False)
+            self.assertEqual((status, body, headers["Content-Range"]), (206, payload, "bytes 0-15/16"))
+            self.assertEqual(self.request("GET", target + "?download=1", auth=False)[::2], (200, payload))
+
     def test_interrupted_chunk_is_rolled_back_and_partial_can_be_deleted(self):
         upload = self.create(size=1024 * 1024)
         connection = socket.create_connection(self.server.server_address)

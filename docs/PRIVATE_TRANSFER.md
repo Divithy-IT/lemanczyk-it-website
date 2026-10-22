@@ -67,7 +67,13 @@ link permits anyone who possesses it to view and download that file.
 
 The service is in the existing shared 500 MiB `web.slice`, with its own 160 MiB
 ceiling, 128 MiB high threshold, no swap, 25% of one CPU, low CPU/I/O priority,
-12 bounded request workers and three simultaneous downloads. Buffers are
+16 bounded request workers, three simultaneous original-file downloads and eight
+separate playback transfers. Downloads cannot consume playback slots. Inline
+range responses are limited to 8 MiB so a paused browser does not hold a slot
+for an entire movie; stalled playback writes time out after 15 seconds. Browsers
+request subsequent ranges as playback proceeds. Original downloads keep their
+full requested range and exact bytes. HEAD requests do not consume transfer
+slots; capacity errors include `Retry-After: 5`. Buffers are
 128 KiB, never the whole movie. Kernel file cache is reclaimable and also counts
 against the service's memory budget.
 
