@@ -7,6 +7,7 @@
   <title>Prywatny transfer plików</title>
   <link rel="stylesheet" href="/daj/style.css">
   <script src="/daj/app.js" defer></script>
+  <script src="/daj/player.js" defer></script>
 </head>
 <body>
 <main>
@@ -45,9 +46,13 @@
       <p id="files-message" class="muted">Ładowanie…</p>
       <div id="files"></div>
     </section>
+    <p id="transfer-message" class="message" role="status" aria-live="polite"></p>
     <section id="player-area" class="card" hidden>
       <div class="section-heading"><h2 id="player-title">Podgląd filmu</h2><button id="close-player" class="secondary" type="button">Zamknij</button></div>
       <video id="player" controls playsinline preload="metadata"></video>
+      <p id="live-counts" class="muted" aria-live="polite"></p>
+      <p class="muted">Liczymy aktywne odtwarzacze i trwające pobrania. Jedna osoba może mieć kilka sesji.</p>
+      <button id="retry-player" type="button" class="secondary" hidden>Spróbuj ponownie</button>
       <p class="muted">Odtwarzanie zależy od formatu i kodeka filmu. Jeśli przeglądarka go nie obsługuje, pobierz plik.</p>
     </section>
   </div>

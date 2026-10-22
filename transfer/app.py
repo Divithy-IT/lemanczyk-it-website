@@ -19,7 +19,7 @@ import socket
 import sqlite3
 import threading
 import time
-from collections import deque
+from collections import Counter, deque
 from contextlib import closing
 from http.cookies import SimpleCookie
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -29,9 +29,12 @@ from urllib.parse import parse_qs, quote, urlsplit
 GIB = 1024 ** 3
 CHUNK = 8 * 1024 ** 2
 STREAM_CHUNK = 8 * 1024 ** 2
-STREAMS = 8
-DOWNLOADS = 3
-WORKERS = 16
+STREAMS = 15
+DOWNLOADS = 8
+WORKERS = 28
+WATCH_TTL = 45
+STREAM_BUSY = "Za dużo osób teraz ogląda film. Poczekaj chwilę i spróbuj ponownie."
+DOWNLOAD_BUSY = "Wszystkie miejsca do pobierania są teraz zajęte. Poczekaj chwilę i spróbuj ponownie."
 MAX_FILE = 16 * GIB
 QUOTA = 20 * GIB
 RESERVE = 8 * GIB
@@ -74,6 +77,8 @@ class Store:
         self.password_lock = threading.Lock()
         self.downloads = threading.BoundedSemaphore(DOWNLOADS)
         self.streams = threading.BoundedSemaphore(STREAMS)
+        self.watchers = {}
+        self.active_downloads = Counter()
         self.sessions = {}
         self.attempts = {}
         self.global_attempts = deque()
@@ -110,6 +115,39 @@ class Store:
 
     def is_public(self, identifier):
         return identifier in self.public_files and bool(self.row(identifier)["ready"])
+
+    def activity(self, identifier, viewer=None, playing=False):
+        with self.lock:
+            now = time.monotonic()
+            self.watchers = {token: item for token, item in self.watchers.items()
+                             if item["expires"] > now}
+            if viewer is not None:
+                if not isinstance(viewer, str) or not IDENTIFIER.fullmatch(viewer):
+                    raise Rejected(400, "Nieprawidłowa sesja odtwarzacza.")
+                if type(playing) is not bool:
+                    raise Rejected(400, "Nieprawidłowy stan odtwarzacza.")
+                if playing:
+                    if viewer not in self.watchers and len(self.watchers) >= STREAMS:
+                        raise Rejected(429, STREAM_BUSY)
+                    self.watchers[viewer] = {"file": identifier, "expires": now + WATCH_TTL}
+                elif self.watchers.get(viewer, {}).get("file") == identifier:
+                    self.watchers.pop(viewer, None)
+            return {"watching": sum(item["file"] == identifier for item in self.watchers.values()),
+                    "downloading": self.active_downloads[identifier] + self.legacy_downloads().get(identifier, 0),
+                    "watch_limit": STREAMS, "download_limit": DOWNLOADS}
+
+    def legacy_downloads(self):
+        # The root-owned handover helper keeps already-running downloads visible
+        # until their old process finishes. No content or credentials are copied.
+        try:
+            data = json.loads((self.directory / "legacy-download-counts.json").read_text())
+            if (not isinstance(data, dict) or len(data) > 50
+                    or any(not IDENTIFIER.fullmatch(key) or type(value) is not int
+                           or not 0 <= value <= DOWNLOADS for key, value in data.items())):
+                return {}
+            return data
+        except (OSError, ValueError, TypeError):
+            return {}
 
     def login(self, password, address):
         now = time.time()
@@ -282,10 +320,10 @@ class Handler(BaseHTTPRequestHandler):
         mutating = self.command in {"POST", "PATCH", "DELETE"}
         if mutating and self.headers.get("Origin") != self.store.origin:
             raise Rejected(403, "Niedozwolone źródło żądania.")
-        if self.command in {"GET", "HEAD"} and path in {"/daj/", "/daj/app.js", "/daj/style.css"}:
-            name = {"/daj/": "index.html", "/daj/app.js": "app.js", "/daj/style.css": "style.css"}[path]
+        if self.command in {"GET", "HEAD"} and path in {"/daj/", "/daj/app.js", "/daj/player.js", "/daj/style.css"}:
+            name = {"/daj/": "index.html", "/daj/app.js": "app.js", "/daj/player.js": "player.js", "/daj/style.css": "style.css"}[path]
             body = Path(__file__).with_name(name).read_bytes()
-            mime = {"index.html": "text/html", "app.js": "application/javascript", "style.css": "text/css"}[name]
+            mime = {"index.html": "text/html", "app.js": "application/javascript", "player.js": "application/javascript", "style.css": "text/css"}[name]
             self.headers_out(200, len(body), mime + "; charset=utf-8")
             if self.command != "HEAD":
                 self.wfile.write(body)
@@ -296,11 +334,15 @@ class Handler(BaseHTTPRequestHandler):
             self.json_out(200, {"csrf": csrf, "role": role, "can_upload": role == "uploader"},
                           {"Set-Cookie": f"{COOKIE}={token}; Path=/daj/; Secure; HttpOnly; SameSite=Strict; Max-Age={SESSION_TTL}"})
             return
-        if self.command in {"GET", "HEAD"} and re.fullmatch(r"/daj/file/[0-9a-f]{32}", path):
+        query = parse_qs(self.path_parts.query)
+        file_request = re.fullmatch(r"/daj/file/[0-9a-f]{32}", path)
+        public_method = self.command in {"GET", "HEAD"} or (self.command == "POST" and query.get("activity") == ["watch"])
+        if public_method and file_request:
             identifier = path.rsplit("/", 1)[1]
             if self.store.is_public(identifier):
-                query = parse_qs(self.path_parts.query)
-                if "stream" in query or "download" in query:
+                if "activity" in query or "availability" in query:
+                    self.file_activity(identifier, query)
+                elif "stream" in query or "download" in query:
                     self.file(identifier)
                 else:
                     self.shared_player(identifier)
@@ -349,8 +391,12 @@ class Handler(BaseHTTPRequestHandler):
                 self.json_out(200, {"ok": True})
             else:
                 raise Rejected(405, "Niedozwolona metoda.")
-        elif re.fullmatch(r"/daj/file/[0-9a-f]{32}", path) and self.command in {"GET", "HEAD"}:
-            self.file(path.rsplit("/", 1)[1])
+        elif file_request and (self.command in {"GET", "HEAD"} or (self.command == "POST" and query.get("activity") == ["watch"])):
+            identifier = path.rsplit("/", 1)[1]
+            if "activity" in query or "availability" in query:
+                self.file_activity(identifier, query)
+            else:
+                self.file(identifier)
         else:
             raise Rejected(404, "Nie znaleziono strony.")
 
@@ -418,16 +464,63 @@ class Handler(BaseHTTPRequestHandler):
 <html lang="pl"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow, noarchive">
-<title>{name} — odtwarzacz</title><link rel="stylesheet" href="/daj/style.css"></head>
+<title>{name} — odtwarzacz</title><link rel="stylesheet" href="/daj/style.css">
+<script src="/daj/player.js" defer></script></head>
 <body><main><header><span class="eyebrow">LEMANCZYK-IT · FILM</span>
 <h1>Obejrzyj film</h1></header><section class="card">
 <h2 class="file-name">{name}</h2><p class="muted">{row["size"] / GIB:.2f} GiB</p>
-{video}<div class="actions"><a class="button" href="{source}?download=1" download>Pobierz film</a></div>
+{video}<p id="live-counts" class="muted" aria-live="polite">Ładowanie liczników…</p>
+<p class="muted">Liczymy aktywne odtwarzacze i trwające pobrania. Jedna osoba może mieć kilka sesji.</p>
+<p id="transfer-message" class="message" role="status" aria-live="polite"></p>
+<div class="actions"><a class="button" href="{source}?download=1">Pobierz film</a>
+<button id="retry-player" type="button" class="secondary" hidden>Spróbuj ponownie</button></div>
 <p class="muted">Odtwarzanie zależy od obsługi formatu przez przeglądarkę. Możesz też pobrać film i otworzyć go na swoim urządzeniu.</p>
 </section><footer>Film dostępny dla osób posiadających ten link.</footer></main></body></html>'''.encode()
         self.headers_out(200, len(body), "text/html; charset=utf-8")
         if self.command != "HEAD":
             self.wfile.write(body)
+
+    def file_activity(self, identifier, query):
+        if not self.store.row(identifier)["ready"]:
+            raise Rejected(409, "Plik jest jeszcze wysyłany.")
+        if "availability" in query and self.command in {"GET", "HEAD"}:
+            mode = query["availability"]
+            if mode not in (["stream"], ["download"]):
+                raise Rejected(400, "Nieprawidłowy rodzaj transferu.")
+            slots = self.store.streams if mode == ["stream"] else self.store.downloads
+            with self.store.lock:
+                available = (mode == ["stream"] or sum(self.store.active_downloads.values()) + sum(self.store.legacy_downloads().values()) < DOWNLOADS)
+                available = available and slots.acquire(blocking=False)
+                if available:
+                    slots.release()
+            self.json_out(200 if available else 429,
+                          {"available": available, "message": STREAM_BUSY if mode == ["stream"] else DOWNLOAD_BUSY},
+                          None if available else {"Retry-After": "10"})
+        elif query.get("activity") == ["status"] and self.command in {"GET", "HEAD"}:
+            self.json_out(200, self.store.activity(identifier))
+        elif query.get("activity") == ["watch"] and self.command == "POST":
+            data = self.json_body()
+            if not isinstance(data.get("viewer"), str):
+                raise Rejected(400, "Nieprawidłowa sesja odtwarzacza.")
+            self.json_out(200, self.store.activity(identifier, data.get("viewer", ""), data.get("playing")))
+        else:
+            raise Rejected(400, "Nieprawidłowe żądanie odtwarzacza.")
+
+    def busy(self, streaming):
+        message = STREAM_BUSY if streaming else DOWNLOAD_BUSY
+        if "text/html" not in self.headers.get("Accept", ""):
+            self.json_out(429, {"message": message}, {"Retry-After": "10"})
+            return
+        source = html.escape(self.path_parts.path, quote=True)
+        again = source + ("?stream=1" if streaming else "?download=1")
+        body = f'''<!doctype html><html lang="pl"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1"><title>Proszę chwilę poczekać</title>
+<link rel="stylesheet" href="/daj/style.css"></head><body><main><section class="card">
+<h1>Proszę chwilę poczekać</h1><p>{message}</p><div class="actions">
+<a class="button" href="{again}">Spróbuj ponownie</a><a class="button secondary" href="{source}">Wróć do filmu</a>
+</div></section></main></body></html>'''.encode()
+        self.headers_out(429, len(body), "text/html; charset=utf-8", {"Retry-After": "10"})
+        self.wfile.write(body)
 
     def file(self, identifier):
         row = self.store.row(identifier)
@@ -455,8 +548,13 @@ class Handler(BaseHTTPRequestHandler):
             return
         # Long original-file downloads must not prevent video playback.
         slots = self.store.streams if streaming else self.store.downloads
-        if not slots.acquire(blocking=False):
-            self.json_out(429, {"message": "Trwają inne transfery. Spróbuj ponownie za chwilę."}, {"Retry-After": "5"})
+        with self.store.lock:
+            available = streaming or sum(self.store.active_downloads.values()) + sum(self.store.legacy_downloads().values()) < DOWNLOADS
+            available = available and slots.acquire(blocking=False)
+            if available and not streaming:
+                self.store.active_downloads[identifier] += 1
+        if not available:
+            self.busy(streaming)
             return
         try:
             # Reclaim a stalled player's slot without waiting two minutes.
@@ -473,13 +571,18 @@ class Handler(BaseHTTPRequestHandler):
                     self.wfile.write(block)
                     remaining -= len(block)
         finally:
+            if not streaming:
+                with self.store.lock:
+                    self.store.active_downloads[identifier] -= 1
+                    if not self.store.active_downloads[identifier]:
+                        del self.store.active_downloads[identifier]
             slots.release()
 
     def handle_request(self):
         try:
             self.dispatch()
         except Rejected as exc:
-            self.json_out(exc.status, {"message": exc.message})
+            self.json_out(exc.status, {"message": exc.message}, {"Retry-After": "10"} if exc.status == 429 else None)
         except (BrokenPipeError, ConnectionError, socket.timeout):
             self.close_connection = True
         except Exception as exc:
@@ -522,4 +625,7 @@ if __name__ == "__main__":
     os.umask(0o077)
     credentials = Path(os.environ["CREDENTIALS_DIRECTORY"]) / "auth.json"
     state = Path(os.environ.get("STATE_DIRECTORY", "/var/lib/lemanczyk-transfer"))
-    Server(("127.0.0.1", 8776), Store(state, credentials)).serve_forever()
+    port = int(os.environ.get("TRANSFER_PORT", "8776"))
+    if not 1024 <= port <= 65535:
+        raise ValueError("invalid transfer port")
+    Server(("127.0.0.1", port), Store(state, credentials)).serve_forever()

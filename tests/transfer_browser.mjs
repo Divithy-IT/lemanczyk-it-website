@@ -134,8 +134,33 @@ try {
   assert(sharedResponse.headers()["x-robots-tag"].includes("noindex, nofollow"));
   assert.equal(await sharedPage.locator("#login").count(), 0);
   await sharedPage.waitForFunction(() => document.getElementById("shared-player").readyState >= 1);
+  await sharedPage.locator("#shared-player").evaluate(player => { player.loop = true; });
   assert.equal(await sharedPage.locator("#shared-player").evaluate(async player => { await player.play(); return player.paused; }), false);
+  await sharedPage.waitForFunction(() => document.getElementById("live-counts").textContent.includes("Ogląda teraz: 1 / 15"));
   await sharedPage.locator("#shared-player").evaluate(player => player.pause());
+  await sharedPage.waitForFunction(() => document.getElementById("live-counts").textContent.includes("Ogląda teraz: 0 / 15"));
+
+  // Simulate full admission without creating traffic or extra movie viewers.
+  let crowded = true;
+  await sharedPage.route("**/*?activity=watch", async route => {
+    if (crowded && route.request().postDataJSON().playing) {
+      await route.fulfill({status: 429, contentType: "application/json", headers: {"Retry-After": "10"}, body: JSON.stringify({message: "Za dużo osób teraz ogląda film."})});
+    } else await route.continue();
+  });
+  await sharedPage.locator("#shared-player").evaluate(player => player.play());
+  await sharedPage.getByText("Za dużo osób teraz ogląda film. Poczekaj chwilę — spróbujemy ponownie automatycznie.", {exact: true}).waitFor();
+  assert.equal(await sharedPage.locator("#shared-player").evaluate(player => player.paused), true);
+  crowded = false;
+  await sharedPage.getByRole("button", {name: "Spróbuj ponownie", exact: true}).click();
+  await sharedPage.waitForFunction(() => !document.getElementById("shared-player").paused);
+  await sharedPage.waitForFunction(() => document.getElementById("live-counts").textContent.includes("Ogląda teraz: 1 / 15"));
+  await sharedPage.locator("#shared-player").evaluate(player => player.pause());
+  await sharedPage.unroute("**/*?activity=watch");
+  await sharedPage.route("**/*?availability=download", route => route.fulfill({status: 429, contentType: "application/json", body: JSON.stringify({available: false})}));
+  await sharedPage.getByRole("link", {name: "Pobierz film", exact: true}).click();
+  await sharedPage.getByText("Wszystkie miejsca do pobierania są teraz zajęte. Poczekaj chwilę i kliknij ponownie „Pobierz film”.", {exact: true}).waitFor();
+  assert.equal(new URL(sharedPage.url()).pathname, moviePath);
+  await sharedPage.unroute("**/*?availability=download");
   const sharedDownload = sharedPage.waitForEvent("download");
   await sharedPage.getByRole("link", {name: "Pobierz film", exact: true}).click();
   assert.deepEqual(await readFile(await (await sharedDownload).path()), Buffer.from(video));

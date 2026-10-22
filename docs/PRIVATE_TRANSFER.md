@@ -67,15 +67,26 @@ link permits anyone who possesses it to view and download that file.
 
 The service is in the existing shared 500 MiB `web.slice`, with its own 160 MiB
 ceiling, 128 MiB high threshold, no swap, 25% of one CPU, low CPU/I/O priority,
-16 bounded request workers, three simultaneous original-file downloads and eight
+28 bounded request workers, eight simultaneous original-file downloads and fifteen
 separate playback transfers. Downloads cannot consume playback slots. Inline
 range responses are limited to 8 MiB so a paused browser does not hold a slot
 for an entire movie; stalled playback writes time out after 15 seconds. Browsers
 request subsequent ranges as playback proceeds. Original downloads keep their
 full requested range and exact bytes. HEAD requests do not consume transfer
-slots; capacity errors include `Retry-After: 5`. Buffers are
+slots; capacity errors include `Retry-After: 10`. Buffers are
 128 KiB, never the whole movie. Kernel file cache is reclaimable and also counts
 against the service's memory budget.
+
+The shared player and private preview show live playback and download counts.
+Playback uses a random per-page token, refreshed every 15 seconds while playing;
+pause/end/closing releases it, and a lost heartbeat expires after 45 seconds.
+At most fifteen playback leases are admitted globally. Counts describe active
+player sessions, not identifiable people; multiple tabs/devices count separately.
+Download counts track active response bodies, including canceled connections.
+Per-file activity endpoints retain that file's existing public/private access.
+Busy players show a Polish waiting message and retry automatically after about
+10–12 seconds, preserving their playback position. Downloads have a preflight
+check and an HTML waiting page as a fallback. Original downloads are unchanged.
 
 ## Credentials and operations
 
@@ -91,12 +102,27 @@ passes this file with systemd `LoadCredential`; the app has no direct access to
 other `/etc` secrets. No credentials are passed in process arguments or URLs.
 
 Deploy website code first, then the infra unit and proxy. Once credentials are
-provisioned, `systemctl enable --now lemanczyk-transfer.service`. Both deployers
+provisioned, `systemctl enable --now lemanczyk-transfer@8777.service`. The instance
+template uses the same DynamicUser and persistent StateDirectory as the legacy
+service; `TRANSFER_PORT` selects its loopback listener. Nginx uses port 8777.
+Both deployers prefer this instance and fall back to the old unit. They
 restart only an already-active transfer service when its managed code/unit
 changes. This logs sessions out; any interrupted upload can be resumed. It does
 not restart games. The release deployer retains the previous website release;
-transfer code rollback additionally requires redeploying the previous four
+transfer code rollback additionally requires redeploying the previous five
 helper files, not just changing the static-site symlink.
+
+For the initial handover, install and start the new instance before reloading
+nginx. The old port-8776 process must remain running until its existing transfers
+finish. Disable its boot enablement without stopping it. The infra
+`transfer-retire-legacy` helper can run every 15 seconds from a transient timer.
+Its root-only `/run/lemanczyk-transfer-legacy.json` captures the old PID, process
+start ticks and file descriptors of known running downloads. It updates
+`legacy-download-counts.json` in StateDirectory so the new instance counts those
+downloads against its eight-download budget. It stops the old unit and its timer
+only after the captured files and all old established connections have drained.
+Neither handover metadata file belongs in Git. Existing public movie URLs stay
+the same. Private in-memory login sessions are not migrated between processes.
 
 Authentication uses opaque, in-memory, 24-hour sessions, Secure/HttpOnly/
 SameSite=Strict host-only cookies, an independent CSRF token, exact same-origin
@@ -106,8 +132,8 @@ service only under `/daj/`. Both nginx request and response buffering are off.
 Nginx access logging is disabled for this prefix; application logging contains
 error classes only. File responses are private/no-store and cannot be framed.
 
-Check `systemctl status lemanczyk-transfer.service`, `journalctl -u
-lemanczyk-transfer.service`, disk free space and `web.slice` memory after changes.
+Check `systemctl status lemanczyk-transfer@8777.service`, `journalctl -u
+lemanczyk-transfer@8777.service`, disk free space and `web.slice` memory after changes.
 `python3 -m unittest discover -s tests -p 'test_transfer.py' -v` runs live HTTP
 tests, including explicit public sharing, viewer read/write authorization, unauthenticated access, CSRF, password throttling, interrupted
 chunks, ranges, exact returned bytes and a sparse file offset above 5 GiB.

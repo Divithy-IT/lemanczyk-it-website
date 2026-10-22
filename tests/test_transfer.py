@@ -258,7 +258,7 @@ class TransferTests(unittest.TestCase):
         try:
             status, headers, body = self.request("GET", target + "?download=1", auth=False)
             self.assertEqual(status, 429)
-            self.assertEqual(headers["Retry-After"], "5")
+            self.assertEqual(headers["Retry-After"], "10")
             self.assertEqual(self.request("GET", target + "?stream=1", auth=False)[::2], (200, b"film"))
             self.assertEqual(self.request("HEAD", target + "?download=1", auth=False)[0], 200)
             for _ in range(app.STREAMS):
@@ -311,6 +311,95 @@ class TransferTests(unittest.TestCase):
         self.assertEqual(self.store.path(upload["id"]).stat().st_size, 0)
         self.assertEqual(self.request("DELETE", "api/uploads/" + upload["id"])[0], 200)
         self.assertFalse(self.store.path(upload["id"]).exists())
+
+    def test_live_viewer_admission_counts_pause_expiry_and_private_access(self):
+        upload = self.create(size=4)
+        path = "api/uploads/" + upload["id"]
+        self.assertEqual(self.request("PATCH", path, b"film", {"Upload-Offset": "0"})[0], 200)
+        self.assertEqual(self.request("POST", path + "/finish", {})[0], 200)
+        target = "file/" + upload["id"]
+        self.assertEqual(self.request("GET", target + "?activity=status", auth=False)[0], 303)
+        self.assertEqual(self.request("POST", target + "?activity=watch", {"viewer": "0" * 32, "playing": True}, auth=False)[0], 401)
+        self.store.public_files = frozenset([upload["id"]])
+        activity = target + "?activity=watch"
+        status = target + "?activity=status"
+        for i in range(app.STREAMS):
+            result, _, body = self.request("POST", activity, {"viewer": f"{i:032x}", "playing": True}, auth=False)
+            self.assertEqual(result, 200)
+            self.assertEqual(json.loads(body)["watching"], i + 1)
+        self.assertEqual(json.loads(self.request("POST", activity, {"viewer": "0" * 32, "playing": True}, auth=False)[2])["watching"], app.STREAMS)
+        code, headers, body = self.request("POST", activity, {"viewer": "f" * 32, "playing": True}, auth=False)
+        self.assertEqual(code, 429)
+        self.assertEqual(headers["Retry-After"], "10")
+        self.assertIn("Za dużo osób", json.loads(body)["message"])
+        self.assertEqual(self.request("POST", activity, {"viewer": "0" * 32, "playing": False}, auth=False)[0], 200)
+        self.assertEqual(json.loads(self.request("GET", status, auth=False)[2])["watching"], app.STREAMS - 1)
+        self.assertEqual(self.request("POST", activity, {"viewer": "f" * 32, "playing": True}, auth=False)[0], 200)
+        with patch.object(app.time, "monotonic", return_value=time.monotonic() + app.WATCH_TTL + 1):
+            self.assertEqual(json.loads(self.request("GET", status, auth=False)[2])["watching"], 0)
+        for bad in (None, "../", "x", 123):
+            self.assertEqual(self.request("POST", activity, {"viewer": bad, "playing": True}, auth=False)[0], 400)
+        self.assertEqual(self.request("POST", activity, {"viewer": "0" * 32, "playing": True}, {"Origin": "https://elsewhere.invalid"}, auth=False)[0], 403)
+
+    def test_busy_downloads_have_readable_message_and_preflight(self):
+        upload = self.create(size=4)
+        path = "api/uploads/" + upload["id"]
+        self.request("PATCH", path, b"film", {"Upload-Offset": "0"})
+        self.request("POST", path + "/finish", {})
+        self.store.public_files = frozenset([upload["id"]])
+        target = "file/" + upload["id"]
+        for _ in range(app.DOWNLOADS):
+            self.store.downloads.acquire()
+        try:
+            code, headers, body = self.request("GET", target + "?download=1", headers={"Accept": "text/html"}, auth=False)
+            self.assertEqual(code, 429)
+            self.assertTrue(headers["Content-Type"].startswith("text/html"))
+            self.assertNotIn("Content-Disposition", headers)
+            self.assertIn("Wszystkie miejsca do pobierania", body.decode())
+            self.assertEqual(self.request("GET", target + "?availability=download", auth=False)[0], 429)
+            self.assertEqual(self.request("GET", target + "?availability=stream", auth=False)[0], 200)
+        finally:
+            for _ in range(app.DOWNLOADS):
+                self.store.downloads.release()
+        self.assertEqual(self.request("GET", target + "?availability=download", auth=False)[0], 200)
+
+    def test_download_count_tracks_connection_and_releases_after_disconnect(self):
+        upload = self.create(size=64 * 1024 ** 2)
+        with self.store.path(upload["id"]).open("wb") as output:
+            output.truncate(upload["size"])
+        self.request("POST", "api/uploads/" + upload["id"] + "/finish", {})
+        self.store.public_files = frozenset([upload["id"]])
+        target = "file/" + upload["id"]
+        connection = http.client.HTTPConnection(*self.server.server_address, timeout=5)
+        connection.request("GET", "/daj/" + target + "?download=1")
+        response = connection.getresponse()
+        self.assertEqual(response.status, 200)
+        self.assertEqual(json.loads(self.request("GET", target + "?activity=status", auth=False)[2])["downloading"], 1)
+        response.close()
+        connection.close()
+        deadline = time.monotonic() + 3
+        while time.monotonic() < deadline:
+            if json.loads(self.request("GET", target + "?activity=status", auth=False)[2])["downloading"] == 0:
+                break
+            time.sleep(.02)
+        else:
+            self.fail("download slot was not released after disconnect")
+
+    def test_legacy_downloads_count_toward_global_capacity_during_handover(self):
+        upload = self.create(size=4)
+        path = "api/uploads/" + upload["id"]
+        self.request("PATCH", path, b"film", {"Upload-Offset": "0"})
+        self.request("POST", path + "/finish", {})
+        self.store.public_files = frozenset([upload["id"]])
+        target = "file/" + upload["id"]
+        legacy = self.store.directory / "legacy-download-counts.json"
+        legacy.write_text(json.dumps({upload["id"]: app.DOWNLOADS}))
+        self.assertEqual(json.loads(self.request("GET", target + "?activity=status", auth=False)[2])["downloading"], app.DOWNLOADS)
+        self.assertEqual(self.request("GET", target + "?availability=download", auth=False)[0], 429)
+        self.assertEqual(self.request("GET", target + "?download=1", auth=False)[0], 429)
+        self.assertEqual(self.request("GET", target + "?stream=1", auth=False)[0], 200)
+        legacy.write_text("{}")
+        self.assertEqual(self.request("GET", target + "?download=1", auth=False)[::2], (200, b"film"))
 
     def test_offsets_beyond_four_gib_without_allocating_a_large_file(self):
         # A sparse fixture exercises real HTTP integer/seek handling above 32 bits.

@@ -27,6 +27,7 @@ jobs:
           python3 tests/deploy_plan_test.py
           python3 -m unittest discover -s tests -p 'test_transfer.py' -v
           node --check transfer/app.js
+          node --check transfer/player.js
       - name: Install browser for responsive tests
         run: npx playwright install --with-deps chromium
       - name: Run responsive browser tests
