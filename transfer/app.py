@@ -33,6 +33,7 @@ STREAMS = 15
 DOWNLOADS = 8
 WORKERS = 28
 WATCH_TTL = 45
+BOOT_TIME = time.time() - time.monotonic()
 STREAM_BUSY = "Za dużo osób teraz ogląda film. Poczekaj chwilę i spróbuj ponownie."
 DOWNLOAD_BUSY = "Wszystkie miejsca do pobierania są teraz zajęte. Poczekaj chwilę i spróbuj ponownie."
 MAX_FILE = 16 * GIB
@@ -140,7 +141,12 @@ class Store:
         # The root-owned handover helper keeps already-running downloads visible
         # until their old process finishes. No content or credentials are copied.
         try:
-            data = json.loads((self.directory / "legacy-download-counts.json").read_text())
+            legacy = self.directory / "legacy-download-counts.json"
+            # Transient retirement timers disappear on reboot; stale handover
+            # counts must not reserve slots after the old process is gone.
+            if legacy.stat().st_mtime < BOOT_TIME:
+                return {}
+            data = json.loads(legacy.read_text())
             if (not isinstance(data, dict) or len(data) > 50
                     or any(not IDENTIFIER.fullmatch(key) or type(value) is not int
                            or not 0 <= value <= DOWNLOADS for key, value in data.items())):

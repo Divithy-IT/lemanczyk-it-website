@@ -58,7 +58,7 @@
     restarting = true;
     if (!file() || !await admit()) {
       restarting = false;
-      if (waiting) timer = setTimeout(retryPlayback, 12000);
+      if (waiting) { clearTimeout(timer); timer = setTimeout(retryPlayback, 12000); }
       return;
     }
     const resume = wanted;
@@ -70,7 +70,10 @@
     }, {once: true});
     player.load();
   }
-  player.addEventListener("play", () => { wanted = true; admit(); });
+  player.addEventListener("play", () => {
+    wanted = true;
+    if (waiting) { player.pause(); retryPlayback(); } else admit();
+  });
   player.addEventListener("pause", () => {
     if (waiting || restarting) return;
     wanted = false; release(); refreshCounts();

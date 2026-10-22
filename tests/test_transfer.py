@@ -400,6 +400,9 @@ class TransferTests(unittest.TestCase):
         self.assertEqual(self.request("GET", target + "?stream=1", auth=False)[0], 200)
         legacy.write_text("{}")
         self.assertEqual(self.request("GET", target + "?download=1", auth=False)[::2], (200, b"film"))
+        legacy.write_text(json.dumps({upload["id"]: app.DOWNLOADS}))
+        os.utime(legacy, (app.BOOT_TIME - 1, app.BOOT_TIME - 1))
+        self.assertEqual(self.request("GET", target + "?availability=download", auth=False)[0], 200)
 
     def test_offsets_beyond_four_gib_without_allocating_a_large_file(self):
         # A sparse fixture exercises real HTTP integer/seek handling above 32 bits.
