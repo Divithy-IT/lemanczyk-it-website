@@ -13,14 +13,24 @@ await writeFile(join(directory, "auth.json"), JSON.stringify({
   salt: salt.toString("hex"), hash: scryptSync(password, salt, 32, {N: 16384, r: 8, p: 1}).toString("hex"),
   viewer_salt: viewerSalt.toString("hex"), viewer_hash: scryptSync(viewerPassword, viewerSalt, 32, {N: 16384, r: 8, p: 1}).toString("hex"),
 }), {mode: 0o600});
-const server = spawn("python3", ["-u", "tests/serve_transfer_fixture.py", directory], {stdio: ["ignore", "pipe", "inherit"]});
-let browser;
-try {
-  const base = await new Promise((resolve, reject) => {
+let server, browser;
+function startFixture() {
+  server = spawn("python3", ["-u", "tests/serve_transfer_fixture.py", directory], {stdio: ["ignore", "pipe", "inherit"]});
+  return new Promise((resolve, reject) => {
     server.stdout.once("data", value => resolve(value.toString().trim()));
     server.once("exit", code => reject(new Error(`fixture exited ${code}`)));
     setTimeout(() => reject(new Error("fixture startup timeout")), 10000).unref();
   });
+}
+async function stopFixture() {
+  if (!server || server.exitCode !== null) return;
+  const stopped = new Promise(resolve => server.once("exit", resolve));
+  server.kill("SIGTERM");
+  await stopped;
+  server = null;
+}
+try {
+  const base = await startFixture();
   browser = await chromium.launch({headless: true});
   const context = await browser.newContext({acceptDownloads: true, viewport: {width: 1440, height: 1000}});
   const page = await context.newPage(), errors = [];
@@ -108,11 +118,45 @@ try {
   }
   await page.locator("#logout").click(); await page.locator("#login").waitFor({state: "visible"});
   assert.equal(await page.locator("#files").textContent(), ""); assert.equal(await page.locator("#player").getAttribute("src"), null);
+
+  // An owner can separately publish one complete file without opening the inbox.
+  const moviePath = new URL(movieURL, base).pathname;
+  const credential = JSON.parse(await readFile(join(directory, "auth.json"), "utf8"));
+  credential.public_files = [moviePath.split("/").at(-1)];
+  await writeFile(join(directory, "auth.json"), JSON.stringify(credential));
+  await stopFixture();
+  const publicBase = await startFixture();
+  const publicContext = await browser.newContext({acceptDownloads: true});
+  const sharedPage = await publicContext.newPage();
+  sharedPage.on("pageerror", error => errors.push(error.message));
+  const sharedResponse = await sharedPage.goto(publicBase + moviePath);
+  assert.equal(sharedResponse.status(), 200);
+  assert(sharedResponse.headers()["x-robots-tag"].includes("noindex, nofollow"));
+  assert.equal(await sharedPage.locator("#login").count(), 0);
+  await sharedPage.waitForFunction(() => document.getElementById("shared-player").readyState >= 1);
+  assert.equal(await sharedPage.locator("#shared-player").evaluate(async player => { await player.play(); return player.paused; }), false);
+  await sharedPage.locator("#shared-player").evaluate(player => player.pause());
+  const sharedDownload = sharedPage.waitForEvent("download");
+  await sharedPage.getByRole("link", {name: "Pobierz film", exact: true}).click();
+  assert.deepEqual(await readFile(await (await sharedDownload).path()), Buffer.from(video));
+  assert.deepEqual(await publicContext.cookies(), []);
+  const publicApi = await sharedPage.evaluate(async () => ({
+    status: (await fetch("/daj/api/status")).status,
+    upload: (await fetch("/daj/api/uploads", {method: "POST", headers: {"Content-Type": "application/json"}, body: "{}"})).status,
+  }));
+  assert.deepEqual(publicApi, {status: 401, upload: 401});
+  const privateResponse = await publicContext.request.get(publicBase + "/daj/file/" + completed.files[0].id, {maxRedirects: 0});
+  assert.equal(privateResponse.status(), 303);
+  for (const width of [1440, 390]) {
+    await sharedPage.setViewportSize({width, height: 900});
+    assert(await sharedPage.evaluate(() => document.documentElement.scrollWidth <= innerWidth), `public player overflow at ${width}`);
+    if (process.env.TRANSFER_SCREENSHOT_DIR) await sharedPage.screenshot({path: join(process.env.TRANSFER_SCREENSHOT_DIR, `shared-player-${width}.png`), fullPage: true});
+  }
+  await publicContext.close();
   assert.deepEqual(errors, []);
-  console.log("TRANSFER_BROWSER_OK: uploader and viewer roles, upload API denied to viewer, pause/reload/resume, exact downloads, native video, private links, desktop/mobile, logout");
+  console.log("TRANSFER_BROWSER_OK: uploader/viewer roles, explicit anonymous player and exact download, private inbox, pause/reload/resume, native video, desktop/mobile, logout");
 } finally {
   if (browser) await browser.close();
-  server.kill("SIGTERM");
-  await new Promise(resolve => server.once("exit", resolve));
+  await stopFixture();
   await rm(directory, {recursive: true, force: true});
 }

@@ -97,6 +97,60 @@ class TransferTests(unittest.TestCase):
         self.store.sessions[token]["expires"] = 0
         self.assertEqual(self.request("GET", "api/status")[0], 401)
 
+    def test_explicit_public_file_has_player_stream_download_but_no_inbox_or_upload_access(self):
+        shared = self.create(name='film <test>.mp4', size=4)
+        path = "api/uploads/" + shared["id"]
+        self.assertEqual(self.request("PATCH", path, b"film", {"Upload-Offset": "0"})[0], 200)
+        self.assertEqual(self.request("POST", path + "/finish", {})[0], 200)
+        partial = self.create(name="unfinished-private.mp4", size=4)
+        private = self.create(name="unshared-private.mp4", size=4)
+        # Reload the fixture's owner-managed configuration, just like deployment.
+        credential = Path(self.temporary.name) / "credential.json"
+        data = json.loads(credential.read_text())
+        data["public_files"] = [shared["id"], partial["id"]]
+        credential.write_text(json.dumps(data))
+        self.store = app.Store(self.store.directory, credential)
+        self.server.store = self.store
+        target = "file/" + shared["id"]
+        status, headers, body = self.request("GET", target, auth=False)
+        self.assertEqual(status, 200)
+        self.assertTrue(headers["Content-Type"].startswith("text/html"))
+        self.assertIn(b"noindex, nofollow", body)
+        self.assertIn(b'film &lt;test&gt;.mp4', body)
+        self.assertNotIn(b'film <test>.mp4', body)
+        self.assertIn(b"?stream=1", body)
+        self.assertIn(b"?download=1", body)
+        self.assertNotIn(partial["name"].encode(), body)
+        self.assertNotIn(private["name"].encode(), body)
+        self.assertEqual(self.request("HEAD", target, auth=False)[2], b"")
+        status, headers, body = self.request("GET", target + "?stream=1", auth=False)
+        self.assertEqual((status, body), (200, b"film"))
+        self.assertEqual(headers["Content-Type"], "video/mp4")
+        self.assertIn("noindex, nofollow", headers["X-Robots-Tag"])
+        status, headers, body = self.request("GET", target + "?download=1", auth=False)
+        self.assertEqual((status, body), (200, b"film"))
+        self.assertTrue(headers["Content-Disposition"].startswith("attachment;"))
+        status, headers, body = self.request("GET", target + "?stream=1", headers={"Range": "bytes=1-2"}, auth=False)
+        self.assertEqual((status, body, headers["Content-Range"]), (206, b"il", "bytes 1-2/4"))
+        for identifier in (partial["id"], private["id"]):
+            self.assertEqual(self.request("GET", "file/" + identifier + "?stream=1", auth=False)[0], 303)
+        for method, endpoint, body in (("GET", "api/status", None), ("GET", path, None),
+                                       ("POST", "api/uploads", {}), ("PATCH", path, b"evil"),
+                                       ("POST", path + "/finish", {}), ("DELETE", path, None)):
+            self.assertEqual(self.request(method, endpoint, body, auth=False)[0], 401)
+        self.assertEqual(self.store.path(shared["id"]).read_bytes(), b"film")
+        self.store.public_files = frozenset()
+        self.assertEqual(self.request("GET", target, auth=False)[0], 303)
+
+    def test_malformed_public_sharing_config_fails_closed(self):
+        credential = Path(self.temporary.name) / "credential.json"
+        data = json.loads(credential.read_text())
+        for invalid in (True, "all", ["*"], ["../private"], [None]):
+            data["public_files"] = invalid
+            credential.write_text(json.dumps(data))
+            with self.assertRaises(ValueError):
+                app.Store(self.store.directory, credential)
+
     def test_rate_limit(self):
         for _ in range(8):
             self.assertEqual(self.request("POST", "api/login", {"password": "wrong"})[0], 401)

@@ -26,11 +26,25 @@ before each retry. After a browser or service restart, sign in again and select
 the file. Upload metadata and bytes survive service restarts.
 
 After the final server confirmation, users with either password can download, copy a
-link or view a supported movie. All links still require the shared password;
-opening a file link without a session returns to the login page. HTTP ranges
+link or view a supported movie. Links require a password by default;
+opening a private file link without a session returns to the login page. HTTP ranges
 support seeking and resumed downloads. MP4/M4V, WebM, OGV and MOV are offered
 for inline video, but actual playback depends on browser codec support. Other
 formats download as attachments; there is no transcoding or media execution.
+
+The owner can explicitly publish a selected complete file by adding its random
+32-character ID to `public_files` in `/etc/lemanczyk-transfer/auth.json` and
+restarting only `lemanczyk-transfer.service`. The same `/daj/file/<id>` then
+opens a standalone player and download button without a session. Its
+`?stream=1` URL serves the media with HTTP range support, and `?download=1`
+downloads the original file with its original filename. All three responses
+remain `noindex, nofollow, noarchive` and no-store. No file directory is exposed.
+Partial uploads cannot be public even if listed. Other files, the inbox API and
+all upload operations retain their existing authentication and role checks.
+Omitting `public_files` or setting it to `[]` keeps all files private; malformed
+lists fail startup. Removing an ID and restarting revokes its anonymous access.
+The list lives only in private host configuration, never in Git. Publishing a
+link permits anyone who possesses it to view and download that file.
 
 ## Limits and storage
 
@@ -66,7 +80,7 @@ scrypt result as hex, n=16384, r=8, p=1) for upload access. The additional
 for view/download access. Legacy credentials without both viewer fields keep
 viewer access disabled; partially configured viewer fields fail startup.
 No plaintext password, password hash,
-session token, production filename or upload content belongs in Git. The unit
+session token, production filename, public sharing ID or upload content belongs in Git. The unit
 passes this file with systemd `LoadCredential`; the app has no direct access to
 other `/etc` secrets. No credentials are passed in process arguments or URLs.
 
@@ -89,7 +103,7 @@ error classes only. File responses are private/no-store and cannot be framed.
 Check `systemctl status lemanczyk-transfer.service`, `journalctl -u
 lemanczyk-transfer.service`, disk free space and `web.slice` memory after changes.
 `python3 -m unittest discover -s tests -p 'test_transfer.py' -v` runs live HTTP
-tests, including viewer read/write authorization, unauthenticated access, CSRF, password throttling, interrupted
+tests, including explicit public sharing, viewer read/write authorization, unauthenticated access, CSRF, password throttling, interrupted
 chunks, ranges, exact returned bytes and a sparse file offset above 5 GiB.
 
 To remove a completed file, first stop the transfer service, back up metadata,

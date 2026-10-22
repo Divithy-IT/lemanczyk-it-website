@@ -26,7 +26,7 @@ async function api(path, method = "GET", data) {
   return result;
 }
 function showPlayer(file) {
-  $("player-title").textContent = file.name; $("player").src = fileURL(file.id);
+  $("player-title").textContent = file.name; $("player").src = fileURL(file.id) + "?stream=1";
   $("player-area").hidden = false; $("player-area").scrollIntoView({behavior: "smooth", block: "nearest"});
 }
 function action(label, callback) {

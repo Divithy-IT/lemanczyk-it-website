@@ -2,11 +2,13 @@
 """Private, bounded-memory, resumable file transfer behind the local nginx.
 
 No uploaded bytes, credentials or runtime metadata belong in a website release.
-Only nginx may reach this loopback server. Every file request is authenticated.
+Only nginx may reach this loopback server. Files require authentication unless
+the owner explicitly lists their IDs in the private sharing configuration.
 """
 from __future__ import annotations
 
 import hashlib
+import html
 import hmac
 import json
 import os
@@ -58,6 +60,11 @@ class Store:
             self.viewer_hash = bytes.fromhex(self.credential["viewer_hash"])
             if len(self.viewer_salt) != 32 or len(self.viewer_hash) != 32:
                 raise ValueError("invalid viewer credential")
+        public_files = self.credential.get("public_files", [])
+        if (not isinstance(public_files, list)
+                or any(not isinstance(value, str) or not IDENTIFIER.fullmatch(value) for value in public_files)):
+            raise ValueError("invalid public file configuration")
+        self.public_files = frozenset(public_files)
         self.lock = threading.RLock()
         self.write_lock = threading.RLock()
         self.password_lock = threading.Lock()
@@ -95,6 +102,9 @@ class Store:
                 "offset": path.stat().st_size if path.exists() else 0,
                 "ready": bool(row["ready"]),
                 "video": Path(row["name"]).suffix.lower() in VIDEO_TYPES}
+
+    def is_public(self, identifier):
+        return identifier in self.public_files and bool(self.row(identifier)["ready"])
 
     def login(self, password, address):
         now = time.time()
@@ -281,6 +291,15 @@ class Handler(BaseHTTPRequestHandler):
             self.json_out(200, {"csrf": csrf, "role": role, "can_upload": role == "uploader"},
                           {"Set-Cookie": f"{COOKIE}={token}; Path=/daj/; Secure; HttpOnly; SameSite=Strict; Max-Age={SESSION_TTL}"})
             return
+        if self.command in {"GET", "HEAD"} and re.fullmatch(r"/daj/file/[0-9a-f]{32}", path):
+            identifier = path.rsplit("/", 1)[1]
+            if self.store.is_public(identifier):
+                query = parse_qs(self.path_parts.query)
+                if "stream" in query or "download" in query:
+                    self.file(identifier)
+                else:
+                    self.shared_player(identifier)
+                return
         try:
             token, session = self.session()
         except Rejected:
@@ -383,6 +402,27 @@ class Handler(BaseHTTPRequestHandler):
             with closing(self.store.connect()) as db, db:
                 db.execute("UPDATE files SET ready=1, touched=? WHERE id=?", (time.time(), identifier))
             self.json_out(200, self.store.describe(self.store.row(identifier)))
+
+    def shared_player(self, identifier):
+        row = self.store.row(identifier)
+        name = html.escape(row["name"])
+        source = f"/daj/file/{identifier}"
+        video = (f'<video id="shared-player" controls playsinline preload="metadata" src="{source}?stream=1"></video>'
+                 if Path(row["name"]).suffix.lower() in VIDEO_TYPES else "")
+        body = f'''<!doctype html>
+<html lang="pl"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow, noarchive">
+<title>{name} — odtwarzacz</title><link rel="stylesheet" href="/daj/style.css"></head>
+<body><main><header><span class="eyebrow">LEMANCZYK-IT · FILM</span>
+<h1>Obejrzyj film</h1></header><section class="card">
+<h2 class="file-name">{name}</h2><p class="muted">{row["size"] / GIB:.2f} GiB</p>
+{video}<div class="actions"><a class="button" href="{source}?download=1" download>Pobierz film</a></div>
+<p class="muted">Odtwarzanie zależy od obsługi formatu przez przeglądarkę. Możesz też pobrać film i otworzyć go na swoim urządzeniu.</p>
+</section><footer>Film dostępny dla osób posiadających ten link.</footer></main></body></html>'''.encode()
+        self.headers_out(200, len(body), "text/html; charset=utf-8")
+        if self.command != "HEAD":
+            self.wfile.write(body)
 
     def file(self, identifier):
         row = self.store.row(identifier)
