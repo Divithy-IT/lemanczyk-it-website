@@ -21,6 +21,11 @@ spec.loader.exec_module(app)
 
 class TransferTests(unittest.TestCase):
     def setUp(self):
+        # Authorization/protocol tests must not depend on the CI runner's disk.
+        # Disk-floor scenarios below explicitly override this virtual capacity.
+        capacity = patch.object(app.shutil, "disk_usage", return_value=type("Disk", (), {"free": 100 * app.GIB})())
+        capacity.start()
+        self.addCleanup(capacity.stop)
         self.temporary = tempfile.TemporaryDirectory()
         directory = Path(self.temporary.name)
         salt = os.urandom(32)
